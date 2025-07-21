@@ -1,0 +1,5 @@
+BDbootloader.bin
+BDkernel.o
+bdos.img
+bdos.tmp
+BDkernel.bin
