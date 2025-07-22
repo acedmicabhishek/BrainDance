@@ -5,3 +5,6 @@ bdos.tmp
 BDkernel.bin
 BDkernel.elf
 
+
+# lib
+lib/memcore.o

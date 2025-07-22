@@ -1,11 +1,9 @@
-void kernel_main() {
-    const char* msg = "Welcome to brainDance Kernel!";
-    char* vga = (char*)0xB8000;
+#include "./lib/memcore.h"
 
-    for (int i = 0; msg[i] != 0; ++i) {
-        vga[i * 2] = msg[i];
-        vga[i * 2 + 1] = 0x0F;
-    }
+void kernel_main() {
+    print(">> BrainDance OS - A CyberNet Project", 0x0D); // Bright magenta
+    print(">> Version: 0.1", 0x0E);                      // Bright yellow
+    print(">> Kernel Booted Successfully", 0x0B);        // Bright cyan
 
     while (1) {}
 }
