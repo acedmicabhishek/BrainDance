@@ -3,3 +3,5 @@ BDkernel.o
 bdos.img
 bdos.tmp
 BDkernel.bin
+BDkernel.elf
+
