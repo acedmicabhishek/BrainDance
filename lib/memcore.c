@@ -31,62 +31,56 @@ int strlen(const char* str) {
     return len;
 }
 
-void clear_screen(unsigned char color) {
-    for (int row = 0; row < VGA_HEIGHT; row++) {
-        for (int col = 0; col < VGA_WIDTH; col++) {
-            int offset = (row * VGA_WIDTH + col) * 2;
-            VGA_MEMORY[offset] = ' ';
-            VGA_MEMORY[offset + 1] = color;
-        }
-    }
-    cursor_row = 0;
-    cursor_col = 0;
-}
+// void clear_screen(unsigned char color) {
+//     for (int row = 0; row < VGA_HEIGHT; row++) {
+//         for (int col = 0; col < VGA_WIDTH; col++) {
+//             int offset = (row * VGA_WIDTH + col) * 2;
+//             VGA_MEMORY[offset] = ' ';
+//             VGA_MEMORY[offset + 1] = color;
+//         }
+//     }
+//     cursor_row = 0;
+//     cursor_col = 0;
+// }
 
-void print_int(int number, unsigned char color) {
-    char buffer[12]; // Enough for 32-bit int: -2147483648
-    int i = 0;
-    int is_negative = 0;
+// void print_int(int number, unsigned char color) {
+//     char buffer[12]; // Enough for 32-bit int: -2147483648
+//     int i = 0;
+//     int is_negative = 0;
 
-    if (number == 0) {
-        print("0", color);
-        return;
-    }
+//     if (number == 0) {
+//         print("0", color);
+//         return;
+//     }
 
-    if (number < 0) {
-        is_negative = 1;
-        number = -number;
-    }
+//     if (number < 0) {
+//         is_negative = 1;
+//         number = -number;
+//     }
+//     while (number != 0) {
+//         buffer[i++] = (number % 10) + '0';
+//         number /= 10;
+//     }
 
-    if (number < -2147483648 || number > 2147483647) {
-        print("Error: Out of range", color);
-        return;
-    }
+//     if (is_negative) buffer[i++] = '-';
 
-    while (number != 0) {
-        buffer[i++] = (number % 10) + '0';
-        number /= 10;
-    }
+//     // Reverse the buffer
+//     for (int j = i - 1; j >= 0; j--) {
+//         char c[2] = { buffer[j], 0 };
+//         print(c, color);
+//     }
+// }
 
-    if (is_negative) buffer[i++] = '-';
+// void print_hex(unsigned int number, unsigned char color) {
+//     char hex_chars[] = "0123456789ABCDEF";
+//     print("0x", color);
 
-    // Reverse the buffer
-    for (int j = i - 1; j >= 0; j--) {
-        char c[2] = { buffer[j], 0 };
-        print(c, color);
-    }
-}
-
-void print_hex(unsigned int number, unsigned char color) {
-    char hex_chars[] = "0123456789ABCDEF";
-    print("0x", color);
-
-    for (int i = 28; i >= 0; i -= 4) {
-        char digit = hex_chars[(number >> i) & 0xF];
-        char c[2] = { digit, 0 };
-        print(c, color);
-    }
-}
+//     for (int i = 28; i >= 0; i -= 4) {
+//         char digit = hex_chars[(number >> i) & 0xF];
+//         char c[2] = { digit, 0 };
+//         print(c, color);
+//     }
+// }
 
 
 void print(const char* msg, unsigned char color) {
