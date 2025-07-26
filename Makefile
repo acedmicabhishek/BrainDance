@@ -19,7 +19,9 @@ BDkernel.bin: BDkernel.o lib/memcore.o linker.ld
 
 # Create bootable image
 bdos.img: BDbootloader.bin BDkernel.bin
-	cat BDbootloader.bin BDkernel.bin > bdos.img
+	dd if=/dev/zero of=bdos.img bs=512 count=65
+	dd if=BDbootloader.bin of=bdos.img conv=notrunc
+	dd if=BDkernel.bin of=bdos.img seek=1 conv=notrunc
 
 # Run with QEMU
 run: bdos.img
@@ -27,4 +29,4 @@ run: bdos.img
 
 # Clean build files
 clean:
-	rm -f *.bin *.o *.elf bdos.img lib/*.o
+	rm -f *.bin *.o *.elf bdos.img lib/*.o *.padded
