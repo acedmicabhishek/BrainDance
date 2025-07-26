@@ -6,6 +6,13 @@ static int cursor_col = 0;
 #define VGA_HEIGHT 25
 #define VGA_MEMORY ((char*)0xB8000)
 
+typedef char* va_list;
+
+#define va_start(ap, last_arg) (ap = (char*)(&last_arg + 1))
+#define va_arg(ap, type)       (*(type*)((ap += sizeof(type)) - sizeof(type)))
+#define va_end(ap)             (ap = 0)
+
+
 void* memcpy(void* dest, const void* src, unsigned int count) {
     char* d = (char*)dest;
     const char* s = (const char*)src;
@@ -90,11 +97,117 @@ void print(const char* msg, unsigned char color) {
             cursor_col = 0;
             if (msg[i] == '\n') continue;
         }
-        if (cursor_row >= VGA_HEIGHT) return;
+        if (cursor_row >= VGA_HEIGHT) scroll_up();
 
         int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
         VGA_MEMORY[offset] = msg[i];
         VGA_MEMORY[offset + 1] = color;
         cursor_col++;
     }
+}
+
+void scroll_up() {
+    for (int row = 1; row < VGA_HEIGHT; row++) {
+        for (int col = 0; col < VGA_WIDTH; col++) {
+            int from = (row * VGA_WIDTH + col) * 2;
+            int to = ((row - 1) * VGA_WIDTH + col) * 2;
+            VGA_MEMORY[to] = VGA_MEMORY[from];
+            VGA_MEMORY[to + 1] = VGA_MEMORY[from + 1];
+        }
+    }
+
+    // Clear last line
+    for (int col = 0; col < VGA_WIDTH; col++) {
+        int offset = ((VGA_HEIGHT - 1) * VGA_WIDTH + col) * 2;
+        VGA_MEMORY[offset] = ' ';
+        VGA_MEMORY[offset + 1] = 0x07;
+    }
+
+    cursor_row = VGA_HEIGHT - 1;
+}
+
+void panic(const char* msg) {
+    clear_screen(0x4F);  // Red bg, white fg
+    print("!!! KERNEL PANIC !!!\n\n", 0x4F);
+    print(msg, 0x4F);
+    while (1) {
+        __asm__ volatile ("cli; hlt");
+    }
+}
+
+void log(const char* tag, const char* msg) {
+    print("[", 0x07);
+    print(tag, 0x07);
+    print("] ", 0x07);
+    print(msg, 0x07);
+    print("\n", 0x07);
+}
+
+void print_char(char c, unsigned char color) {
+    if (c == '\n' || cursor_col >= VGA_WIDTH) {
+        cursor_row++;
+        cursor_col = 0;
+        if (c == '\n') return;
+    }
+
+    if (cursor_row >= VGA_HEIGHT) {
+        scroll_up();
+    }
+
+    int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
+    VGA_MEMORY[offset] = c;
+    VGA_MEMORY[offset + 1] = color;
+    cursor_col++;
+}
+
+void println(const char* msg, unsigned char color) {
+    print(msg, color);
+    print_char('\n', color);
+}
+
+
+void kprintf(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    for (int i = 0; fmt[i] != '\0'; i++) {
+        if (fmt[i] == '%') {
+            i++;
+            char spec = fmt[i];
+            switch (spec) {
+                case 'd': {
+                    int val = va_arg(args, int);
+                    print_int(val, 0x07);
+                    break;
+                }
+                case 'x': {
+                    unsigned int val = va_arg(args, unsigned int);
+                    print_hex(val, 0x07);
+                    break;
+                }
+                case 's': {
+                    const char* str = va_arg(args, const char*);
+                    print(str, 0x07);
+                    break;
+                }
+                case 'c': {
+                    char c = (char)va_arg(args, int); // promote to int
+                    print_char(c, 0x07);
+                    break;
+                }
+                case '%': {
+                    print_char('%', 0x07);
+                    break;
+                }
+                default:
+                    print_char('%', 0x07);
+                    print_char(spec, 0x07);
+                    break;
+            }
+        } else {
+            print_char(fmt[i], 0x07);
+        }
+    }
+
+    va_end(args);
 }
