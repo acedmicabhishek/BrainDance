@@ -1,10 +1,14 @@
-BDbootloader.bin
-BDkernel.o
-bdos.img
+# Build artifacts
+*.o
+*.bin
+*.elf
+*.img
+*.padded
+
+# Object files in subdirectories
+kernel/*.o
+libc/*.o
+arch/i3t86/*.o
+
+# Other temporary files
 bdos.tmp
-BDkernel.bin
-BDkernel.elf
-
-
-# lib
-lib/memcore.o
