@@ -1,20 +1,34 @@
+CFLAGS = -m32 -ffreestanding -I.
 all: bdos.img
 
 # Compile bootloader
-BDbootloader.bin: BDbootloader.asm
-	nasm -f bin BDbootloader.asm -o BDbootloader.bin
+BDbootloader.bin: boot/BDbootloader.asm
+	nasm -f bin boot/BDbootloader.asm -o BDbootloader.bin
 
-# Compile memory core library
-lib/memcore.o: lib/memcore.c lib/memcore.h
-	i686-elf-gcc -m32 -ffreestanding -c lib/memcore.c -o lib/memcore.o
+# Compile libc
+libc/memcore.o: libc/memcore.c include/memcore.h
+	i686-elf-gcc $(CFLAGS) -c libc/memcore.c -o libc/memcore.o
 
-# Compile kernel with memcore
-BDkernel.o: BDkernel.c lib/memcore.o
-	i686-elf-gcc -m32 -ffreestanding -c BDkernel.c -o BDkernel.o
+# Compile architecture-specific files
+arch/i386/idt.o: arch/i386/idt.c include/idt.h
+	i686-elf-gcc $(CFLAGS) -c arch/i386/idt.c -o arch/i386/idt.o
+
+arch/i386/isr.o: arch/i386/isr.c include/isr.h include/idt.h
+	i686-elf-gcc $(CFLAGS) -c arch/i386/isr.c -o arch/i386/isr.o
+
+arch/i386/isr_asm.o: arch/i386/isr.asm
+	nasm -f elf32 arch/i386/isr.asm -o arch/i386/isr_asm.o
+
+arch/i386/load_idt.o: arch/i386/load_idt.asm
+	nasm -f elf32 arch/i386/load_idt.asm -o arch/i386/load_idt.o
+
+# Compile kernel
+kernel/BDkernel.o: kernel/BDkernel.c include/memcore.h include/idt.h include/isr.h
+	i686-elf-gcc $(CFLAGS) -c kernel/BDkernel.c -o kernel/BDkernel.o
 
 # Link kernel
-BDkernel.bin: BDkernel.o lib/memcore.o linker.ld
-	i686-elf-ld -m elf_i386 -T linker.ld -o BDkernel.elf BDkernel.o lib/memcore.o
+BDkernel.bin: kernel/BDkernel.o libc/memcore.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o kernel/linker.ld
+	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o
 	objcopy -O binary BDkernel.elf BDkernel.bin
 
 # Create bootable image
@@ -29,4 +43,4 @@ run: bdos.img
 
 # Clean build files
 clean:
-	rm -f *.bin *.o *.elf bdos.img lib/*.o *.padded
+	rm -f *.bin *.o *.elf bdos.img boot/*.bin kernel/*.o kernel/*.elf libc/*.o arch/i386/*.o
