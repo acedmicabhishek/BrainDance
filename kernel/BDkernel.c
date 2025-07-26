@@ -3,9 +3,11 @@ extern char _bss_end;
 extern char _stack_start;
 extern char _stack_end;
 
-#include "./include/memcore.h"
-#include "./include/idt.h"
-#include "./include/isr.h"
+#include "include/memcore.h"
+#include "include/idt.h"
+#include "include/isr.h"
+#include "include/irq.h"
+#include "include/timer.h"
 
 void kernel_main() {
     clear_screen(0x07);
@@ -26,8 +28,16 @@ void kernel_main() {
     // Initialize interrupts
     idt_install();
     isr_install();
-    print("INFO: IDT and ISRs installed\n", 0x02);
+    irq_install();
+    print("INFO: IDT, ISRs, and IRQs installed\n", 0x02);
 
-    // Trigger divide-by-zero to test ISR[0]
-    asm volatile("int $0");
+    // Initialize timer
+    timer_install();
+    print("INFO: Timer installed\n", 0x02);
+
+    // Enable interrupts
+    asm volatile ("sti");
+
+    // Wait for interrupts
+    for(;;);
 }

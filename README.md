@@ -1,7 +1,7 @@
 # BrainDance
 An OS from Scratch aiming for cyberNet
 
-## What to implement:
+## done : 
 
 IDT structure
 
@@ -10,6 +10,8 @@ ISRs (0–31)
 Basic IRQ remapping (if going for hardware)
 
 Use kprintf() inside ISRs
+
+# What to implement:
 
 ## 2. Timer (PIT) Initialization
 Enable regular ticks via IRQ0 (for scheduling later).
