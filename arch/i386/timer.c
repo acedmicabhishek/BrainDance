@@ -14,5 +14,18 @@ void timer_handler(struct regs *r) {
 }
 
 void timer_install() {
+    // IRQ0 will be fired at 100Hz
+    unsigned int divisor = 1193182 / 100;
+
+    // Send the command byte
+    outb(0x43, 0x36);
+
+    // Send the divisor
+    unsigned char l = (unsigned char)(divisor & 0xFF);
+    unsigned char h = (unsigned char)((divisor >> 8) & 0xFF);
+    outb(0x40, l);
+    outb(0x40, h);
+
+    // Install the handler
     irq_install_handler(0, timer_handler);
 }

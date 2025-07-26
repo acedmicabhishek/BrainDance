@@ -11,7 +11,6 @@ Basic IRQ remapping (if going for hardware)
 
 Use kprintf() inside ISRs
 
-# What to implement:
 
 ## 2. Timer (PIT) Initialization
 Enable regular ticks via IRQ0 (for scheduling later).
@@ -21,6 +20,8 @@ PIT init code (channel 0, mode 2, freq = 100 Hz)
 Tick counter inside timer_handler()
 
 Use it to test log() or scroll logic
+
+# What to implement:
 
 ## 3. Keyboard Driver
 Handle keyboard interrupts via IRQ1.
