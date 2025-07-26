@@ -8,6 +8,7 @@ extern char _stack_end;
 #include "include/isr.h"
 #include "include/irq.h"
 #include "include/timer.h"
+#include "include/keyboard.h"
 
 void kernel_main() {
     clear_screen(0x07);
@@ -35,8 +36,13 @@ void kernel_main() {
     timer_install();
     print("INFO: Timer installed\n", 0x02);
 
+    // Initialize keyboard
+    keyboard_install();
+    print("INFO: Keyboard installed\n", 0x02);
+
     // Enable interrupts
     asm volatile ("sti");
+
 
     // Wait for interrupts
     for(;;);
