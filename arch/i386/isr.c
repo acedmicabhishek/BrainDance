@@ -1,15 +1,32 @@
-#include "./include/memcore.h"
-#include "./include/idt.h"
-#include "./include/isr.h"
+#include "include/memcore.h"
+#include "include/idt.h"
+#include "include/isr.h"
+#include "include/pmm.h"
 
-void isr_handler(unsigned int int_no, unsigned int err_code) {
-    print("CPU Exception [", 0x04);
-    print_int(int_no, 0x04);
-    print("] occurred. Halting...\n", 0x04);
-    for (;;);
+isr_t interrupt_handlers[256];
+
+void register_interrupt_handler(uint8_t n, isr_t handler) {
+    interrupt_handlers[n] = handler;
+}
+
+void isr_handler(regs_t *r) {
+    if (interrupt_handlers[r->int_no] != 0) {
+        isr_t handler = interrupt_handlers[r->int_no];
+        handler(r);
+    } else {
+        print("CPU Exception [", 0x04);
+        print_int(r->int_no, 0x04);
+        print("] occurred. Halting...\n", 0x04);
+        for (;;);
+    }
 }
 
 void isr_install() {
+    // Clear all interrupt handlers
+    for (int i = 0; i < 256; i++) {
+        interrupt_handlers[i] = 0;
+    }
+
     extern void isr0(), isr1(), isr2(), isr3(), isr4(), isr5(), isr6(), isr7();
     extern void isr8(), isr9(), isr10(), isr11(), isr12(), isr13(), isr14();
     extern void isr15(), isr16(), isr17(), isr18(), isr19(), isr20(), isr21();

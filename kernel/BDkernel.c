@@ -10,6 +10,7 @@ extern char _stack_end;
 #include "include/timer.h"
 #include "include/keyboard.h"
 #include "include/pmm.h"
+#include "include/paging.h"
 
 void kernel_main() {
     // Read memory map info from the bootloader-populated addresses
@@ -39,6 +40,10 @@ void kernel_main() {
     isr_install();
     irq_install();
     print("INFO: IDT, ISRs, and IRQs installed\n", 0x02);
+
+    // Initialize paging
+    paging_install();
+    print("INFO: Paging enabled\n", 0x02);
 
     // Initialize timer
     timer_install();

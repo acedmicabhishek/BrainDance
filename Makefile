@@ -13,6 +13,10 @@ libc/memcore.o: libc/memcore.c include/memcore.h
 memory/pmm.o: memory/pmm.c include/pmm.h
 	i686-elf-gcc $(CFLAGS) -c memory/pmm.c -o memory/pmm.o
 
+# Compile Paging
+memory/paging.o: memory/paging.c include/paging.h
+	i686-elf-gcc $(CFLAGS) -c memory/paging.c -o memory/paging.o
+
 # Compile architecture-specific files
 arch/i386/idt.o: arch/i386/idt.c include/idt.h
 	i686-elf-gcc $(CFLAGS) -c arch/i386/idt.c -o arch/i386/idt.o
@@ -46,8 +50,8 @@ kernel/BDkernel.o: kernel/BDkernel.c include/memcore.h include/idt.h include/isr
 	i686-elf-gcc $(CFLAGS) -c kernel/BDkernel.c -o kernel/BDkernel.o
 
 # Link kernel
-BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o kernel/linker.ld
-	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o memory/pmm.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o
+BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o kernel/linker.ld
+	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o
 	objcopy -O binary BDkernel.elf BDkernel.bin
 
 # Create bootable image
