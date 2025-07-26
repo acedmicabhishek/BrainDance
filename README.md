@@ -21,7 +21,6 @@ Tick counter inside timer_handler()
 
 Use it to test log() or scroll logic
 
-# What to implement:
 
 ## 3. Keyboard Driver
 Handle keyboard interrupts via IRQ1.
@@ -33,8 +32,9 @@ Convert to ASCII (basic US layout)
 
 Echo input on screen
 
+# What to implement:
+
 ## 4. Physical Memory Management (PMM)
-You already track _bss_end → now:
 
 Build a simple bump allocator
 
