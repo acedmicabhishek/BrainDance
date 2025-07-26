@@ -29,7 +29,7 @@ SECTIONS {
     /* Stack reservation (32KB, aligned to 16 bytes) */
     .stack ALIGN(16) : {
         _stack_start = .;
-        . = . + 0x8000;
+        . = . + 0x10000;
         _stack_end = .;
     }
 }

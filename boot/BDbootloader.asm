@@ -12,21 +12,17 @@ start:
 
     ; --- Load Kernel from Disk ---
     ; Uses BIOS interrupt 0x13 to read from the disk
-    mov ah, 0x02      ; Function 02h: Read Sectors
-    mov al, 64        ; Number of sectors to read (64 * 512 bytes = 32KB)
-    mov ch, 0         ; Cylinder number
-    mov cl, 2         ; Sector number (starts from 1, bootloader is in sector 1)
-    mov dh, 0         ; Head number
-    mov dl, 0x80      ; Drive number (0x80 for the first hard disk)
-    mov bx, 0x8000    ; Buffer address to load kernel into
+    mov ah, 0x42      ; Function 42h: Extended Read
+    mov dl, 0x80      ; Drive number (must be set)
+    mov si, dap       ; DS:SI points to the DAP
     int 0x13          ; Call BIOS disk services
-    jc disk_fail      ; If carry flag is set, jump to disk_fail label
+    jc halt           ; If carry flag is set, halt
 
     ; --- Enable A20 Line ---
     ; This allows access to memory above 1MB
-    in al, 0x92       ; Read from port 0x92
-    or al, 0x02       ; Set the second bit
-    out 0x92, al      ; Write back to port 0x92
+    mov ax, 0x2401    ; BIOS A20 gate enable function
+    int 0x15          ; Call BIOS services
+    jc halt           ; If carry flag is set, A20 enable failed
 
     ; --- Load Global Descriptor Table (GDT) ---
     cli             ; Disable interrupts before loading GDT
@@ -64,7 +60,7 @@ init_pm:
     ; The kernel is loaded at 0x8000, but the linker expects it at 0x100000.
     mov esi, 0x8000      ; Source address
     mov edi, 0x100000    ; Destination address
-    mov ecx, 512 * 64    ; Number of bytes to copy (32KB)
+    mov ecx, 512 * 128   ; Number of bytes to copy (64KB)
     cld                  ; Clear direction flag (for forward copying)
     rep movsb            ; Repeat move byte string
 
@@ -77,18 +73,14 @@ halt:
     hlt
     jmp halt
 
-disk_fail:
-    ; --- Print Disk Read Error Message ---
-    mov si, disk_msg
-print_error:
-    lodsb             ; Load byte from SI into AL
-    or al, al         ; Check if AL is null (end of string)
-    jz halt           ; If so, halt
-    mov ah, 0x0E      ; Function 0Eh: Teletype Output
-    int 0x10          ; Call BIOS video services
-    jmp print_error
 
-disk_msg db "Disk read failed!", 0
+dap:
+    db 0x10  ; Size of packet (16 bytes)
+    db 0     ; Reserved
+    dw 128   ; Number of sectors to read
+    dw 0x8000; Destination buffer offset
+    dw 0     ; Destination buffer segment
+    dq 1     ; Start LBA (Logical Block Address)
 
 ; --- GDT Segment Selectors ---
 CODE_SEG equ 0x08
