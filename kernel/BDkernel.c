@@ -9,8 +9,16 @@ extern char _stack_end;
 #include "include/irq.h"
 #include "include/timer.h"
 #include "include/keyboard.h"
+#include "include/pmm.h"
 
 void kernel_main() {
+    // Read memory map info from the bootloader-populated addresses
+    uint32_t mmap_entries = *(uint32_t*)0x900;
+    uint32_t mmap_addr = 0x1000;
+
+    // Initialize the PMM
+    pmm_init(mmap_addr, mmap_entries);
+
     clear_screen(0x07);
     print("BrainDance Kernel Loaded.\n\n", 0x04);
 

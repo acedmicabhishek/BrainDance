@@ -18,6 +18,23 @@ start:
     int 0x13          ; Call BIOS disk services
     jc halt           ; If carry flag is set, halt
 
+    ; --- Read E820 Memory Map ---
+    xor ebx, ebx      ; Start with EBX = 0
+    mov edi, 0x1000   ; Buffer to store map entries
+    mov dword [0x900], 0 ; Counter for map entries
+read_map:
+    mov eax, 0xE820   ; E820 function
+    mov ecx, 20       ; Size of the buffer (20 bytes)
+    mov edx, 0x534D4150 ; 'SMAP' signature
+    int 0x15          ; Call BIOS
+    jc halt           ; If error, halt
+
+    add edi, 20       ; Move to next buffer position
+    inc dword [0x900] ; Increment entry count
+
+    cmp ebx, 0        ; If EBX is 0, we are done
+    jne read_map      ; Otherwise, continue reading
+
     ; --- Enable A20 Line ---
     ; This allows access to memory above 1MB
     mov ax, 0x2401    ; BIOS A20 gate enable function
