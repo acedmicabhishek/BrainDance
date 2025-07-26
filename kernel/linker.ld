@@ -32,4 +32,6 @@ SECTIONS {
         . = . + 0x10000;
         _stack_end = .;
     }
+
+    _kernel_end = .;
 }
