@@ -48,7 +48,7 @@ BDkernel.bin: kernel/BDkernel.o libc/memcore.o arch/i386/idt.o arch/i386/isr.o a
 
 # Create bootable image
 bdos.img: BDbootloader.bin BDkernel.bin
-	dd if=/dev/zero of=bdos.img bs=512 count=65
+	dd if=/dev/zero of=bdos.img bs=512 count=130
 	dd if=BDbootloader.bin of=bdos.img conv=notrunc
 	dd if=BDkernel.bin of=bdos.img seek=1 conv=notrunc
 
