@@ -11,7 +11,7 @@ extern char _stack_end;
 
 void kernel_main() {
     clear_screen(0x07);
-    print("BrainDance Kernel Loaded.\n\n", 0x07);
+    print("BrainDance Kernel Loaded.\n\n", 0x04);
 
     // Print memory diagnostics
     unsigned int bss_size   = (unsigned int)(&_bss_end - &_bss_start);
