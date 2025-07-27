@@ -4,6 +4,7 @@
 #include "include/pmm.h"
 #include "include/timer.h"
 #include "include/bdfs.h"
+#include "include/ata.h"
 
 #define PROMPT "BD> "
 #define MAX_COMMAND_LENGTH 256
@@ -24,7 +25,54 @@ void help_command() {
        print("  write    - Write to a file\n", 0x07);
        print("  read     - Read from a file\n", 0x07);
        print("  rm       - Remove a file\n", 0x07);
+    print("  ataread  - Read a sector from the ATA drive\n", 0x07);
+    print("  atawrite - Write a sector to the ATA drive\n", 0x07);
    }
+
+// Simple atoi implementation
+int atoi(const char* str) {
+    int res = 0;
+    for (int i = 0; str[i] != '\0'; ++i) {
+        res = res * 10 + str[i] - '0';
+    }
+    return res;
+}
+
+void ataread_command(const char* lba_str) {
+    if (!lba_str) {
+        print("Usage: ataread <lba>\n", 0x04);
+        return;
+    }
+    uint32_t lba = atoi(lba_str);
+    char buffer[512];
+    if (ata_read_sector(lba, buffer) == 0) {
+        kprintf("Successfully read sector %d.\n", lba);
+        // Print buffer as hex
+        for(int i = 0; i < 512; i++) {
+            kprintf("%x ", (unsigned char)buffer[i]);
+        }
+        kprintf("\n");
+    } else {
+        kprintf("Failed to read sector %d.\n", lba);
+    }
+}
+
+void atawrite_command(const char* lba_str, const char* data) {
+    if (!lba_str || !data) {
+        print("Usage: atawrite <lba> <data>\n", 0x04);
+        return;
+    }
+    uint32_t lba = atoi(lba_str);
+    char buffer[512];
+    memset(buffer, 0, 512);
+    strncpy(buffer, data, 511);
+
+    if (ata_write_sector(lba, buffer) == 0) {
+        kprintf("Successfully wrote to sector %d.\n", lba);
+    } else {
+        kprintf("Failed to write to sector %d.\n", lba);
+    }
+}
    
    void ls_command() {
        bdfs_list_files();
@@ -141,6 +189,13 @@ void process_command(const char* command) {
         } else {
             print("Usage: rm <filename>\n", 0x04);
         }
+   } else if (strcmp(token, "ataread") == 0) {
+       token = strtok(NULL, " ");
+       ataread_command(token);
+   } else if (strcmp(token, "atawrite") == 0) {
+       char* lba_str = strtok(NULL, " ");
+       char* data = strtok(NULL, "");
+       atawrite_command(lba_str, data);
     } else if (strlen(command) > 0) {
         print("Unknown command: ", 0x04);
         print(command, 0x04);
