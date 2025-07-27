@@ -19,5 +19,8 @@ typedef struct {
 void pmm_init(uint32_t mmap_addr, uint32_t mmap_entries);
 void* pmm_alloc_block();
 void pmm_free_block(void* block);
+uint32_t pmm_get_total_memory();
+uint32_t pmm_get_used_memory();
+uint32_t pmm_get_free_memory();
 
-#endif // PMM_H
+#endif

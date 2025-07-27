@@ -38,6 +38,29 @@ int strlen(const char* str) {
     return len;
 }
 
+int strcmp(const char* str1, const char* str2) {
+    while (*str1 && (*str1 == *str2)) {
+        str1++;
+        str2++;
+    }
+    return *(const unsigned char*)str1 - *(const unsigned char*)str2;
+}
+
+void print_backspace() {
+    if (cursor_col > 0) {
+        cursor_col--;
+        int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
+        VGA_MEMORY[offset] = ' ';
+        VGA_MEMORY[offset + 1] = 0x07; // Default color
+    } else if (cursor_row > 0) {
+        cursor_row--;
+        cursor_col = VGA_WIDTH - 1;
+        int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
+        VGA_MEMORY[offset] = ' ';
+        VGA_MEMORY[offset + 1] = 0x07; // Default color
+    }
+}
+
 void clear_screen(unsigned char color) {
     for (int row = 0; row < VGA_HEIGHT; row++) {
         for (int col = 0; col < VGA_WIDTH; col++) {

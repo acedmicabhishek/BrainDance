@@ -11,6 +11,7 @@ extern char _stack_end;
 #include "include/keyboard.h"
 #include "include/pmm.h"
 #include "include/paging.h"
+#include "include/shell.h"
 #include "include/heap.h"
 
 void kernel_main() {
@@ -71,6 +72,9 @@ void kernel_main() {
     asm volatile ("sti");
 
 
-    // Wait for interrupts
+    // Start the shell
+    start_shell();
+
+    // Wait for interrupts (should not be reached if shell loops indefinitely)
     for(;;);
 }
