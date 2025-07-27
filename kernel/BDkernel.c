@@ -11,6 +11,7 @@ extern char _stack_end;
 #include "include/keyboard.h"
 #include "include/pmm.h"
 #include "include/paging.h"
+#include "include/heap.h"
 
 void kernel_main() {
     // Read memory map info from the bootloader-populated addresses
@@ -44,6 +45,19 @@ void kernel_main() {
     // Initialize paging
     paging_install();
     print("INFO: Paging enabled\n", 0x02);
+
+    // Heap is initialized by global heap_ptr in memory/heap.c
+    print("INFO: Kernel Heap initialized\n", 0x02);
+
+    void* test1 = kmalloc(16);
+    void* test2 = kmalloc(32);
+    void* test3 = kmalloc(8);
+
+    kprintf("Heap allocations:\n");
+    kprintf("  test1 = %x\n", test1);
+    kprintf("  test2 = %x\n", test2);
+    kprintf("  test3 = %x\n", test3);
+
 
     // Initialize timer
     timer_install();
