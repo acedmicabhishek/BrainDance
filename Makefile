@@ -49,6 +49,10 @@ arch/i386/timer.o: arch/i386/timer.c include/timer.h include/irq.h include/ports
 drivers/keyboard_driver.o: drivers/keyboard_driver.c include/keyboard.h include/ports.h include/irq.h include/memcore.h
 	i686-elf-gcc $(CFLAGS) -c drivers/keyboard_driver.c -o drivers/keyboard_driver.o
 
+# Compile ATA driver
+drivers/ata/ata.o: drivers/ata/ata.c include/ata.h include/ports.h
+	i686-elf-gcc $(CFLAGS) -c drivers/ata/ata.c -o drivers/ata/ata.o
+
 # Compile Shell
 shell/shell.o: shell/shell.c include/shell.h
 	i686-elf-gcc $(CFLAGS) -c shell/shell.c -o shell/shell.o
@@ -62,8 +66,8 @@ kernel/BDkernel.o: kernel/BDkernel.c include/memcore.h include/idt.h include/isr
 	i686-elf-gcc $(CFLAGS) -c kernel/BDkernel.c -o kernel/BDkernel.o
 
 # Link kernel
-BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o shell/shell.o fs/bdfs.o kernel/linker.ld
-	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o shell/shell.o fs/bdfs.o
+BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o shell/shell.o fs/bdfs.o kernel/linker.ld
+	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o shell/shell.o fs/bdfs.o
 	objcopy -O binary BDkernel.elf BDkernel.bin
 
 # Create bootable image
@@ -78,4 +82,4 @@ run: bdos.img
 
 # Clean build files
 clean:
-	rm -f *.bin *.o *.elf bdos.img boot/*.bin kernel/*.o kernel/*.elf libc/*.o arch/i386/*.o drivers/*.o fs/*.o
+	rm -f *.bin *.o *.elf bdos.img boot/*.bin kernel/*.o kernel/*.elf libc/*.o arch/i386/*.o drivers/*.o drivers/ata/*.o fs/*.o

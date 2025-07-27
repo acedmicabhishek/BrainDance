@@ -14,6 +14,7 @@ extern char _stack_end;
 #include "include/shell.h"
 #include "include/heap.h"
 #include "include/bdfs.h"
+#include "include/ata.h"
 
 // Define the RAM disk base address
 #define RAMDISK_BASE 0x200000
@@ -75,6 +76,9 @@ void kernel_main() {
     // Initialize BDFS
     bdfs_init((uint8_t*)RAMDISK_BASE);
     print("INFO: BDFS initialized\n", 0x02);
+
+    // Initialize ATA driver
+    ata_init();
 
     // Enable interrupts
     asm volatile ("sti");
