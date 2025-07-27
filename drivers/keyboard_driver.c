@@ -16,7 +16,7 @@ unsigned char kbd_us[128] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
-
+char last_char = 0;
 void keyboard_handler(struct regs *r) {
     unsigned char scancode;
 
@@ -39,4 +39,11 @@ void keyboard_handler(struct regs *r) {
 
 void keyboard_install() {
     irq_install_handler(1, keyboard_handler);
+}
+
+char keyboard_get_char() {
+    while (last_char == 0);
+    char c = last_char;
+    last_char = 0;
+    return c;
 }

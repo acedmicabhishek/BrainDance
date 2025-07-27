@@ -103,3 +103,14 @@ void pmm_free_block(void* block) {
         used_blocks--;
     }
 }
+uint32_t pmm_get_total_memory() {
+    return total_blocks * BLOCK_SIZE;
+}
+
+uint32_t pmm_get_used_memory() {
+    return used_blocks * BLOCK_SIZE;
+}
+
+uint32_t pmm_get_free_memory() {
+    return (total_blocks - used_blocks) * BLOCK_SIZE;
+}
