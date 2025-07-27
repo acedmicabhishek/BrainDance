@@ -88,3 +88,81 @@ The `Makefile` automates the entire build process:
 - Links the object files together to create the final kernel executable (`BDkernel.elf`).
 - Converts the ELF executable to a flat binary file (`BDkernel.bin`).
 - Concatenates the bootloader and the kernel binary to create a bootable disk image (`bdos.img`).
+
+## 7. Shell (`shell/`)
+
+The shell provides a command-line interface for interacting with the BrainDance OS. It allows users to execute various commands to query system information, manage the display, and perform basic system operations.
+
+### Key Components:
+- **`shell.h` / `shell.c`:** Defines the shell's interface and implements its core logic, including input handling, command parsing, and execution.
+- **Command Buffer:** Stores user input up to `MAX_COMMAND_LENGTH`.
+- **Command Handlers:** Dedicated functions for each supported command (e.g., `help_command`, `clear_command`).
+
+### Supported Commands:
+- `help`: Displays a list of available commands and their descriptions.
+- `clear`: Clears the console screen.
+- `meminfo`: Shows statistics about physical memory usage (total, used, free).
+- `time`: Displays the system uptime in seconds.
+- `halt`: Halts the CPU, requiring manual closure of the QEMU emulator.
+
+### Input Handling:
+The shell continuously reads character input from the keyboard. It supports:
+- **Typing:** Characters are echoed to the screen as they are typed.
+- **Backspace:** Deletes the last character entered.
+- **Enter:** Processes the current command in the buffer. The command is null-terminated, and the `process_command` function dispatches it to the appropriate handler.
+
+## 8. Memory Management
+
+BrainDance OS implements several layers of memory management to efficiently allocate and protect memory resources.
+
+### 8.1. Paging (`memory/paging.c`, `include/paging.h`)
+Paging is a memory management scheme that allows the operating system to store and retrieve data from secondary storage for use in main memory. It enables virtual memory, providing each process with its own isolated address space.
+
+#### Key Components:
+- **Page Directory:** A table containing 1024 entries, each pointing to a Page Table.
+- **Page Table:** A table containing 1024 entries, each pointing to a physical page frame (4KB).
+- **Page Directory Entry (PDE) Flags:**
+    - `PDE_PRESENT`: Indicates if the page table is present in memory.
+    - `PDE_RW`: Read/Write permission.
+    - `PDE_USER`: User-mode access permission.
+- **Page Table Entry (PTE) Flags:**
+    - `PTE_PRESENT`: Indicates if the physical page is present in memory.
+    - `PTE_RW`: Read/Write permission.
+    - `PTE_USER`: User-mode access permission.
+
+#### Functionality:
+- `paging_install()`: Initializes the paging system, sets up the initial page directory and page table, identity maps the first 4MB of memory, and installs the page fault handler.
+- `map_page(phys_addr, virt_addr, flags)`: Maps a given physical address to a virtual address with specified permissions. It creates new page tables if necessary.
+- `unmap_page(virt_addr)`: Unmaps a virtual address, invalidating the corresponding Translation Lookaside Buffer (TLB) entry.
+- `get_phys_addr(virt_addr)`: Retrieves the physical address corresponding to a given virtual address.
+- **Page Fault Handler:** Catches memory access violations, prints debug information (faulting address, error code), and halts the system.
+
+### 8.2. Heap (`memory/heap.c`, `include/heap.h`)
+The heap provides dynamic memory allocation for the kernel. BrainDance OS currently uses a simple bump allocator for its kernel heap.
+
+#### Key Components:
+- `HEAP_START`: The starting virtual address of the heap (0x400000).
+- `HEAP_END`: The ending virtual address of the heap (0x800000).
+- `heap_ptr`: A pointer that tracks the next available address in the heap.
+
+#### Functionality:
+- `kmalloc(size)`: Allocates a block of `size` bytes from the heap. It simply increments `heap_ptr` and returns the previous value. Returns 0 if out of heap space.
+- `kfree(ptr)`: A stub function for API compatibility. In a bump allocator, memory is not individually freed; it's typically reset or managed by higher-level allocators.
+
+## 9. Drivers
+
+This section details the hardware drivers implemented in BrainDance OS.
+
+### 9.1. Keyboard Driver (`drivers/keyboard_driver.c`, `include/keyboard.h`)
+The keyboard driver handles input from the PS/2 keyboard, converting scancodes into ASCII characters.
+
+#### Key Components:
+- `KBD_DATA_PORT` (0x60): Port for reading keyboard data.
+- `KBD_STATUS_PORT` (0x64): Port for reading keyboard status.
+- `kbd_us[128]`: A scancode-to-ASCII mapping table for a basic US keyboard layout.
+- `last_char`: A global variable used to store the last character received from the keyboard interrupt handler, making it available for polling by functions like `keyboard_get_char()`.
+
+#### Functionality:
+- `keyboard_install()`: Installs the keyboard interrupt handler (IRQ1) to process keyboard events.
+- `keyboard_handler(regs_t *r)`: The interrupt service routine for the keyboard. It reads the scancode from the data port, checks for key presses (ignoring releases for now), converts the scancode to an ASCII character using `kbd_us`, and stores the character in `last_char`.
+- `keyboard_get_char()`: A blocking function that waits until a character is available in `last_char`, retrieves it, clears `last_char`, and returns the character. This function is used by the shell to get user input.

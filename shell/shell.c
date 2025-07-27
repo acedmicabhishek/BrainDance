@@ -39,7 +39,7 @@ void meminfo_command() {
 
 void time_command() {
     print("Uptime: ", 0x07);
-    print_int(timer_ticks / 100, 0x07); // Assuming 100 ticks per second
+    print_int(timer_ticks / 100, 0x07);
     print(" seconds\n", 0x07);
 }
 
