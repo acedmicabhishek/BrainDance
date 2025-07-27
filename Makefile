@@ -53,13 +53,17 @@ drivers/keyboard_driver.o: drivers/keyboard_driver.c include/keyboard.h include/
 shell/shell.o: shell/shell.c include/shell.h
 	i686-elf-gcc $(CFLAGS) -c shell/shell.c -o shell/shell.o
 
+# Compile BDFS
+fs/bdfs.o: fs/bdfs.c include/bdfs.h
+	i686-elf-gcc $(CFLAGS) -c fs/bdfs.c -o fs/bdfs.o
+
 # Compile kernel
 kernel/BDkernel.o: kernel/BDkernel.c include/memcore.h include/idt.h include/isr.h include/keyboard.h
 	i686-elf-gcc $(CFLAGS) -c kernel/BDkernel.c -o kernel/BDkernel.o
 
 # Link kernel
-BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o shell/shell.o kernel/linker.ld
-	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o shell/shell.o
+BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o shell/shell.o fs/bdfs.o kernel/linker.ld
+	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o shell/shell.o fs/bdfs.o
 	objcopy -O binary BDkernel.elf BDkernel.bin
 
 # Create bootable image
@@ -74,4 +78,4 @@ run: bdos.img
 
 # Clean build files
 clean:
-	rm -f *.bin *.o *.elf bdos.img boot/*.bin kernel/*.o kernel/*.elf libc/*.o arch/i386/*.o drivers/*.o
+	rm -f *.bin *.o *.elf bdos.img boot/*.bin kernel/*.o kernel/*.elf libc/*.o arch/i386/*.o drivers/*.o fs/*.o
