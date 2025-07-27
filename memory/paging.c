@@ -55,3 +55,97 @@ void paging_install() {
     cr0 |= 0x80000000; // Set PG bit
     asm volatile("mov %0, %%cr0" :: "r"(cr0));
 }
+
+void map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags) {
+    // Calculate page directory and page table indices
+    uint32_t pd_idx = virt_addr >> 22;
+    uint32_t pt_idx = (virt_addr >> 12) & 0x03FF;
+
+    // Get the page directory entry
+    page_directory_entry_t* pde = &page_directory->tables[pd_idx];
+
+    // If the page directory entry is not present, create a new page table
+    if (!pde->present) {
+        // Allocate a new page table from physical memory
+        uint32_t new_pt_phys_addr = pmm_alloc_block();
+        if (new_pt_phys_addr == 0) {
+            // Handle allocation failure (e.g., out of memory)
+            print("PANIC: Out of physical memory for page table\n", 0x04);
+            for(;;);
+        }
+
+        // Map the new page table into the page directory
+        pde->present = 1;
+        pde->rw = 1; // Read/Write
+        pde->user = 1; // User-mode access
+        pde->frame = new_pt_phys_addr >> 12;
+
+        // Clear the new page table
+        // We need to temporarily map it to a virtual address to clear it
+        // For simplicity, we'll assume a direct mapping for now or use a known temporary virtual address
+        // In a real kernel, you'd have a dedicated temporary mapping mechanism.
+        // For this exercise, we'll directly cast the physical address, assuming it's accessible.
+        memset((void*)new_pt_phys_addr, 0, sizeof(page_table_t));
+    }
+
+    // Get the page table (it's already mapped if PDE was present, or just created)
+    page_table_t* page_table = (page_table_t*)(pde->frame << 12);
+
+    // Get the page table entry
+    page_table_entry_t* pte = &page_table->pages[pt_idx];
+
+    // Set the page table entry
+    pte->present = (flags & PTE_PRESENT) ? 1 : 0;
+    pte->rw = (flags & PTE_RW) ? 1 : 0;
+    pte->user = (flags & PTE_USER) ? 1 : 0;
+    pte->frame = phys_addr >> 12;
+
+    // Invalidate TLB for the virtual address
+    asm volatile("invlpg (%0)" :: "r"(virt_addr) : "memory");
+}
+
+void unmap_page(uint32_t virt_addr) {
+    uint32_t pd_idx = virt_addr >> 22;
+    uint32_t pt_idx = (virt_addr >> 12) & 0x03FF;
+
+    page_directory_entry_t* pde = &page_directory->tables[pd_idx];
+
+    if (!pde->present) {
+        // Page directory entry not present, so page is not mapped
+        return;
+    }
+
+    page_table_t* page_table = (page_table_t*)(pde->frame << 12);
+    page_table_entry_t* pte = &page_table->pages[pt_idx];
+
+    // Clear the page table entry
+    memset(pte, 0, sizeof(page_table_entry_t));
+
+    // Invalidate TLB for the virtual address
+    asm volatile("invlpg (%0)" :: "r"(virt_addr) : "memory");
+
+    // TODO: Optionally, if the page table becomes empty, free the page table itself
+    // This would involve checking if all entries in the page_table are not present.
+    // For simplicity, we are not doing this in a basic implementation.
+}
+
+uint32_t get_phys_addr(uint32_t virt_addr) {
+    uint32_t pd_idx = virt_addr >> 22;
+    uint32_t pt_idx = (virt_addr >> 12) & 0x03FF;
+
+    page_directory_entry_t* pde = &page_directory->tables[pd_idx];
+
+    if (!pde->present) {
+        return 0; // Not mapped
+    }
+
+    page_table_t* page_table = (page_table_t*)(pde->frame << 12);
+    page_table_entry_t* pte = &page_table->pages[pt_idx];
+
+    if (!pte->present) {
+        return 0; // Not mapped
+    }
+
+    // Calculate physical address
+    return (pte->frame << 12) + (virt_addr & 0xFFF);
+}

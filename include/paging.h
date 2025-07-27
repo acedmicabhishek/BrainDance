@@ -43,5 +43,8 @@ typedef struct {
 } page_directory_t;
 
 void paging_install();
+void map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags);
+void unmap_page(uint32_t virt_addr);
+uint32_t get_phys_addr(uint32_t virt_addr);
 
 #endif
