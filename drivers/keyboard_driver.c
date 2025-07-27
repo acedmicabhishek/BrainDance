@@ -30,9 +30,7 @@ void keyboard_handler(struct regs *r) {
         // Key pressed
         if (scancode < 128) {
             char c = kbd_us[scancode];
-            if (c != 0) {
-                print_char(c, 0x07); // Echo to screen
-            }
+            last_char = c; // Store the character for keyboard_get_char()
         }
     }
 }

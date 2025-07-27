@@ -78,6 +78,7 @@ void start_shell() {
         if (c == '\n') {
             command_buffer[command_len] = '\0'; // Null-terminate the command
             print("\n", 0x07);
+            kprintf("DEBUG: Command buffer: '%s', length: %d\n", command_buffer, command_len);
             process_command(command_buffer);
             command_len = 0;
             memset(command_buffer, 0, MAX_COMMAND_LENGTH); // Clear buffer
@@ -90,8 +91,8 @@ void start_shell() {
         } else {
             if (command_len < MAX_COMMAND_LENGTH - 1) {
                 command_buffer[command_len++] = c;
-                print_char(c, 0x07);
             }
+            print_char(c, 0x07); // Echo to screen
         }
     }
 }
