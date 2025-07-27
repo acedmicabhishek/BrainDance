@@ -31,7 +31,6 @@ Read scancode from 0x60
 Convert to ASCII (basic US layout)
 
 Echo input on screen
-
 # What to implement:
 
 ## 4. Physical Memory Management (PMM)
@@ -76,6 +75,3 @@ clear
 Implement:
 
 kmalloc(), kfree()
-
-Simple malloc-style allocator (bump or linked-list)
-This helps build file systems, drivers, etc.
