@@ -234,3 +234,73 @@ void kprintf(const char* fmt, ...) {
 
     va_end(args);
 }
+
+char* strcpy(char* dest, const char* src) {
+    char* original_dest = dest;
+    while ((*dest++ = *src++));
+    return original_dest;
+}
+
+static char *strtok_state = NULL;
+
+// Helper to check if a character is a delimiter
+static int is_delimiter(char c, const char* delimiters) {
+    while (*delimiters) {
+        if (c == *delimiters++) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+char* strtok(char* str, const char* delimiters) {
+    if (str != NULL) {
+        strtok_state = str;
+    }
+
+    if (strtok_state == NULL || *strtok_state == '\0') {
+        return NULL;
+    }
+
+    // Skip leading delimiters
+    char* token_start = strtok_state;
+    while (is_delimiter(*token_start, delimiters)) {
+        token_start++;
+    }
+
+    if (*token_start == '\0') {
+        strtok_state = token_start;
+        return NULL;
+    }
+
+    // Find the end of the token
+    char* token_end = token_start;
+    while (*token_end && !is_delimiter(*token_end, delimiters)) {
+        token_end++;
+    }
+
+    if (*token_end != '\0') {
+        *token_end = '\0';
+        strtok_state = token_end + 1;
+    } else {
+        strtok_state = token_end;
+    }
+
+    return token_start;
+}
+
+char* strncpy(char* dest, const char* src, unsigned int n) {
+    unsigned int i;
+    char* original_dest = dest;
+
+    for (i = 0; i < n && *src != '\0'; i++) {
+        *dest++ = *src++;
+    }
+
+    // If we haven't filled n characters, pad with nulls
+    for ( ; i < n; i++) {
+        *dest++ = '\0';
+    }
+
+    return original_dest;
+}

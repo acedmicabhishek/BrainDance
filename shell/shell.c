@@ -3,6 +3,7 @@
 #include "include/keyboard.h"
 #include "include/pmm.h"
 #include "include/timer.h"
+#include "include/bdfs.h"
 
 #define PROMPT "BD> "
 #define MAX_COMMAND_LENGTH 256
@@ -18,9 +19,53 @@ void help_command() {
     print("  meminfo  - Show PMM statistics\n", 0x07);
     print("  time     - Show system uptime\n", 0x07);
     print("  halt     - Halt the system (requires QEMU to be closed manually)\n", 0x07);
-}
-
-void clear_command() {
+       print("  ls       - List files\n", 0x07);
+       print("  touch    - Create a file\n", 0x07);
+       print("  write    - Write to a file\n", 0x07);
+       print("  read     - Read from a file\n", 0x07);
+       print("  rm       - Remove a file\n", 0x07);
+   }
+   
+   void ls_command() {
+       bdfs_list_files();
+   }
+   
+   void touch_command(const char* filename) {
+       if (bdfs_create(filename) == 0) {
+           kprintf("File '%s' created.\n", filename);
+       } else {
+           kprintf("Error creating file '%s'.\n", filename);
+       }
+   }
+   
+   void write_command(const char* filename, const char* data) {
+       if (bdfs_write(filename, data, strlen(data)) > 0) {
+           kprintf("Wrote to file '%s'.\n", filename);
+       } else {
+           kprintf("Error writing to file '%s'.\n", filename);
+       }
+   }
+   
+   void read_command(const char* filename) {
+       char buffer[1024]; // 1KB buffer
+       memset(buffer, 0, 1024);
+       int bytes_read = bdfs_read(filename, buffer, 1023);
+       if (bytes_read >= 0) {
+           kprintf("Read %d bytes from '%s':\n%s\n", bytes_read, filename, buffer);
+       } else {
+           kprintf("Error reading from file '%s'.\n", filename);
+       }
+   }
+   
+   void rm_command(const char* filename) {
+       if (bdfs_delete(filename) == 0) {
+           kprintf("File '%s' deleted.\n", filename);
+       } else {
+           kprintf("Error deleting file '%s'.\n", filename);
+       }
+   }
+   
+   void clear_command() {
     clear_screen(0x07);
 }
 
@@ -50,16 +95,52 @@ void halt_command() {
 
 // Function to process a command
 void process_command(const char* command) {
-    if (strcmp(command, "help") == 0) {
+    char cmd[MAX_COMMAND_LENGTH];
+    strcpy(cmd, command);
+
+    char* token = strtok(cmd, " ");
+    
+    if (strcmp(token, "help") == 0) {
         help_command();
-    } else if (strcmp(command, "clear") == 0) {
+    } else if (strcmp(token, "clear") == 0) {
         clear_command();
-    } else if (strcmp(command, "meminfo") == 0) {
+    } else if (strcmp(token, "meminfo") == 0) {
         meminfo_command();
-    } else if (strcmp(command, "time") == 0) {
+    } else if (strcmp(token, "time") == 0) {
         time_command();
-    } else if (strcmp(command, "halt") == 0) {
+    } else if (strcmp(token, "halt") == 0) {
         halt_command();
+    } else if (strcmp(token, "ls") == 0) {
+        ls_command();
+    } else if (strcmp(token, "touch") == 0) {
+        token = strtok(NULL, " ");
+        if (token) {
+            touch_command(token);
+        } else {
+            print("Usage: touch <filename>\n", 0x04);
+        }
+    } else if (strcmp(token, "write") == 0) {
+        char* filename = strtok(NULL, " ");
+        char* data = strtok(NULL, ""); // The rest of the string
+        if (filename && data) {
+            write_command(filename, data);
+        } else {
+            print("Usage: write <filename> <data>\n", 0x04);
+        }
+    } else if (strcmp(token, "read") == 0) {
+        token = strtok(NULL, " ");
+        if (token) {
+            read_command(token);
+        } else {
+            print("Usage: read <filename>\n", 0x04);
+        }
+    } else if (strcmp(token, "rm") == 0) {
+        token = strtok(NULL, " ");
+        if (token) {
+            rm_command(token);
+        } else {
+            print("Usage: rm <filename>\n", 0x04);
+        }
     } else if (strlen(command) > 0) {
         print("Unknown command: ", 0x04);
         print(command, 0x04);

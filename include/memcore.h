@@ -1,10 +1,15 @@
 #ifndef MEMCORE_H
 #define MEMCORE_H
 
+#define NULL ((void*)0)
+
 void* memcpy(void* dest, const void* src, unsigned int count);
 void* memset(void* dest, int value, unsigned int count);
 int strlen(const char* str);
 int strcmp(const char* str1, const char* str2);
+char* strcpy(char* dest, const char* src);
+char* strncpy(char* dest, const char* src, unsigned int n);
+char* strtok(char* str, const char* delimiters);
 void print_backspace();
 
 void print(const char* msg, unsigned char color);

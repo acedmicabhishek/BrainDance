@@ -13,6 +13,10 @@ extern char _stack_end;
 #include "include/paging.h"
 #include "include/shell.h"
 #include "include/heap.h"
+#include "include/bdfs.h"
+
+// Define the RAM disk base address
+#define RAMDISK_BASE 0x200000
 
 void kernel_main() {
     // Read memory map info from the bootloader-populated addresses
@@ -67,6 +71,10 @@ void kernel_main() {
     // Initialize keyboard
     keyboard_install();
     print("INFO: Keyboard installed\n", 0x02);
+
+    // Initialize BDFS
+    bdfs_init((uint8_t*)RAMDISK_BASE);
+    print("INFO: BDFS initialized\n", 0x02);
 
     // Enable interrupts
     asm volatile ("sti");
