@@ -3,20 +3,29 @@
 
 #include "pmm.h"
 
-// File Table Entry
-typedef struct {
-    char     name[32];   // File name
-    uint32_t size;       // File size in bytes
-    uint32_t offset;     // Offset in RAM disk (from data start)
-    uint8_t  used;       // 1 = used, 0 = free
-} bdfs_file_t;
+#define BDFS_MAGIC 0x42444653 // "BDFS"
+#define BDFS_MAX_FILES 64
+#define BDFS_MAX_FILENAME_LENGTH 16
+#define BDFS_FILE_TABLE_SECTOR_START 129
+#define BDFS_FILE_TABLE_SECTORS 4
+#define BDFS_DATA_SECTOR_START (BDFS_FILE_TABLE_SECTOR_START + BDFS_FILE_TABLE_SECTORS)
 
-// BDFS API
-void bdfs_init(uint8_t* ramdisk_base);
-int  bdfs_create(const char* name);
-int  bdfs_write(const char* name, const void* data, uint32_t size);
-int  bdfs_read(const char* name, void* buffer, uint32_t max_size);
-int  bdfs_delete(const char* name);
+// Represents a file in the BDFS
+typedef struct {
+    char name[BDFS_MAX_FILENAME_LENGTH];
+    uint32_t start_sector;
+    uint32_t length; // Length in bytes
+} bdfs_file_entry_t;
+
+// Function prototypes
+void bdfs_init();
+void bdfs_sync_file_table();
+
+// File operations
+int bdfs_create_file(const char* filename);
+int bdfs_delete_file(const char* filename);
 void bdfs_list_files();
+int bdfs_read_file(const char* filename, uint8_t* buffer, uint32_t* bytes_read);
+int bdfs_write_file(const char* filename, const uint8_t* buffer, uint32_t bytes_to_write);
 
 #endif // BDFS_H

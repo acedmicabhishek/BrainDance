@@ -73,12 +73,12 @@ void kernel_main() {
     keyboard_install();
     print("INFO: Keyboard installed\n", 0x02);
 
-    // Initialize BDFS
-    bdfs_init((uint8_t*)RAMDISK_BASE);
-    print("INFO: BDFS initialized\n", 0x02);
-
     // Initialize ATA driver
     ata_init();
+
+    // Initialize BDFS
+    bdfs_init();
+    print("INFO: BDFS initialized\n", 0x02);
 
     // Enable interrupts
     asm volatile ("sti");
