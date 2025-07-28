@@ -20,11 +20,12 @@ void help_command() {
     print("  meminfo  - Show PMM statistics\n", 0x07);
     print("  time     - Show system uptime\n", 0x07);
     print("  halt     - Halt the system (requires QEMU to be closed manually)\n", 0x07);
-       print("  ls       - List files\n", 0x07);
-       print("  touch    - Create a file\n", 0x07);
-       print("  write    - Write to a file\n", 0x07);
-       print("  read     - Read from a file\n", 0x07);
-       print("  rm       - Remove a file\n", 0x07);
+    print("  ls       - List files\n", 0x07);
+    print("  touch    - Create a file\n", 0x07);
+    print("  write    - Write to a file\n", 0x07);
+    print("  cat      - Read from a file\n", 0x07);
+    print("  rm       - Remove a file\n", 0x07);
+    print("  format   - Format the filesystem\n", 0x07);
     print("  ataread  - Read a sector from the ATA drive\n", 0x07);
     print("  atawrite - Write a sector to the ATA drive\n", 0x07);
    }
@@ -79,7 +80,7 @@ void atawrite_command(const char* lba_str, const char* data) {
    }
    
    void touch_command(const char* filename) {
-       if (bdfs_create(filename) == 0) {
+       if (bdfs_create_file(filename) == 0) {
            kprintf("File '%s' created.\n", filename);
        } else {
            kprintf("Error creating file '%s'.\n", filename);
@@ -87,30 +88,51 @@ void atawrite_command(const char* lba_str, const char* data) {
    }
    
    void write_command(const char* filename, const char* data) {
-       if (bdfs_write(filename, data, strlen(data)) > 0) {
+       if (bdfs_write_file(filename, (const uint8_t*)data, strlen(data)) > 0) {
            kprintf("Wrote to file '%s'.\n", filename);
        } else {
            kprintf("Error writing to file '%s'.\n", filename);
        }
    }
    
-   void read_command(const char* filename) {
-       char buffer[1024]; // 1KB buffer
+   void cat_command(const char* filename) {
+       uint8_t buffer[1024]; // 1KB buffer
+       uint32_t bytes_read;
        memset(buffer, 0, 1024);
-       int bytes_read = bdfs_read(filename, buffer, 1023);
-       if (bytes_read >= 0) {
-           kprintf("Read %d bytes from '%s':\n%s\n", bytes_read, filename, buffer);
+       if (bdfs_read_file(filename, buffer, &bytes_read) == 0) {
+           kprintf("DEBUG: bytes_read = %d\n", bytes_read);
+           // Print hex and ASCII representation
+           for (uint32_t i = 0; i < bytes_read; i++) {
+               kprintf("%02x ", buffer[i]);
+           }
+           kprintf("\n");
+           for (uint32_t i = 0; i < bytes_read; i++) {
+               char c = (buffer[i] >= 32 && buffer[i] <= 126) ? buffer[i] : '.';
+               print_char(c, 0x07);
+           }
+           kprintf("\n");
        } else {
            kprintf("Error reading from file '%s'.\n", filename);
        }
    }
    
    void rm_command(const char* filename) {
-       if (bdfs_delete(filename) == 0) {
+       if (bdfs_delete_file(filename) == 0) {
            kprintf("File '%s' deleted.\n", filename);
        } else {
            kprintf("Error deleting file '%s'.\n", filename);
        }
+   }
+
+   void format_command() {
+       uint8_t buffer[BDFS_FILE_TABLE_SECTORS * 512];
+       memset(buffer, 0, sizeof(buffer));
+       *(uint32_t*)buffer = BDFS_MAGIC;
+       for (int i = 0; i < BDFS_FILE_TABLE_SECTORS; i++) {
+           ata_write_sector(BDFS_FILE_TABLE_SECTOR_START + i, buffer + (i * 512));
+       }
+       bdfs_init();
+       kprintf("Filesystem formatted.\n");
    }
    
    void clear_command() {
@@ -175,12 +197,12 @@ void process_command(const char* command) {
         } else {
             print("Usage: write <filename> <data>\n", 0x04);
         }
-    } else if (strcmp(token, "read") == 0) {
+    } else if (strcmp(token, "cat") == 0) {
         token = strtok(NULL, " ");
         if (token) {
-            read_command(token);
+            cat_command(token);
         } else {
-            print("Usage: read <filename>\n", 0x04);
+            print("Usage: cat <filename>\n", 0x04);
         }
     } else if (strcmp(token, "rm") == 0) {
         token = strtok(NULL, " ");
@@ -189,6 +211,8 @@ void process_command(const char* command) {
         } else {
             print("Usage: rm <filename>\n", 0x04);
         }
+   } else if (strcmp(token, "format") == 0) {
+       format_command();
    } else if (strcmp(token, "ataread") == 0) {
        token = strtok(NULL, " ");
        ataread_command(token);
