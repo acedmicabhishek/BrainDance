@@ -104,6 +104,14 @@ The shell provides a command-line interface for interacting with the BrainDance 
 - `meminfo`: Shows statistics about physical memory usage (total, used, free).
 - `time`: Displays the system uptime in seconds.
 - `halt`: Halts the CPU, requiring manual closure of the QEMU emulator.
+- `ls`: Lists all files in the BDFS filesystem.
+- `touch <filename>`: Creates a new, empty file.
+- `rm <filename>`: Deletes a file.
+- `write <filename> <data>`: Writes data to a file, overwriting any existing content.
+- `cat <filename>`: Reads and displays the content of a file.
+- `format`: Formats the disk, creating a new, empty BDFS filesystem.
+- `ataread <lba>`: Reads a raw sector from the disk at the specified LBA.
+- `atawrite <lba> <data>`: Writes raw data to a sector on the disk.
 
 ### Input Handling:
 The shell continuously reads character input from the keyboard. It supports:
@@ -166,3 +174,67 @@ The keyboard driver handles input from the PS/2 keyboard, converting scancodes i
 - `keyboard_install()`: Installs the keyboard interrupt handler (IRQ1) to process keyboard events.
 - `keyboard_handler(regs_t *r)`: The interrupt service routine for the keyboard. It reads the scancode from the data port, checks for key presses (ignoring releases for now), converts the scancode to an ASCII character using `kbd_us`, and stores the character in `last_char`.
 - `keyboard_get_char()`: A blocking function that waits until a character is available in `last_char`, retrieves it, clears `last_char`, and returns the character. This function is used by the shell to get user input.
+
+### 9.2. ATA Driver (`drivers/ata/ata.c`, `include/ata.h`)
+The ATA (Advanced Technology Attachment) driver provides an interface for reading from and writing to IDE hard drives. It communicates with the drive controller using I/O ports.
+
+#### Key Components:
+- **I/O Ports:** Defines the standard port addresses for the primary ATA bus (e.g., `ATA_DATA_PORT`, `ATA_STATUS_CMD_PORT`).
+- **Commands:** Defines ATA commands like `ATA_CMD_READ_SECTORS` and `ATA_CMD_WRITE_SECTORS`.
+- **Status Bits:** Defines the bits in the status register (e.g., `ATA_SR_BSY`, `ATA_SR_DRDY`, `ATA_SR_ERR`).
+
+#### Functionality:
+- `ata_init()`: Initializes the ATA driver. It performs a software reset on the drive to ensure it's in a known state, then selects the master drive on the primary bus.
+- `ata_read_sector(lba, buffer)`: Reads a single 512-byte sector from the drive at the specified Logical Block Address (LBA) into the provided buffer.
+- `ata_write_sector(lba, buffer)`: Writes a single 512-byte sector from the buffer to the drive at the specified LBA.
+- `ata_poll()`: A helper function that waits for the drive to be ready by polling the status port until the `BSY` (Busy) bit is clear.
+
+## 10. Filesystem (BDFS)
+
+BrainDance OS includes a simple, custom-built filesystem called BDFS (BrainDance File System). It is designed to be easy to implement and understand, providing basic file operations like creation, deletion, reading, and writing.
+
+### 10.1. On-Disk Layout
+
+The BDFS has a straightforward on-disk structure:
+- **File Table:** A fixed-size table that stores metadata for all files. It starts at sector `BDFS_FILE_TABLE_SECTOR_START` (currently 129, to avoid overwriting the kernel) and occupies `BDFS_FILE_TABLE_SECTORS` (4).
+    - The first 4 bytes of the file table contain the magic number `0x42444653` ("BDFS") to identify the filesystem.
+- **Data Region:** The rest of the disk, starting at `BDFS_DATA_SECTOR_START`, is used for storing file data.
+
+### 10.2. File Entry (`bdfs_file_entry_t`)
+
+Each entry in the file table is a `bdfs_file_entry_t` structure, which contains:
+- `name`: The filename (up to 16 characters).
+- `start_sector`: The starting LBA of the file's data. A value of `(uint32_t)-1` indicates that no sectors have been allocated yet.
+- `length`: The length of the file in bytes.
+
+### 10.3. Filesystem Operations (`fs/bdfs.c`, `include/bdfs.h`)
+
+- `bdfs_init()`: Initializes the filesystem. It checks for the BDFS magic number. If it's not found, it creates a new, empty filesystem by formatting the file table. Otherwise, it loads the existing file table from disk.
+- `bdfs_create_file(filename)`: Creates a new, empty file with the given name.
+- `bdfs_delete_file(filename)`: Deletes a file by clearing its entry in the file table. Note that the data blocks are not overwritten, only marked as available.
+- `bdfs_read_file(filename, buffer, ...)`: Reads the entire content of a file into the provided buffer.
+- `bdfs_write_file(filename, buffer, ...)`: Writes data to a file. If the file is new, it allocates a contiguous block of sectors. If the file exists, it overwrites the existing data. BDFS does not support growing files; you must write the entire file content at once.
+- `bdfs_list_files()`: Lists all files in the filesystem.
+- `bdfs_stat_file(filename, entry)`: Retrieves metadata (the file entry) for a given file.
+
+## 11. System Layout
+
+This section provides a map of how BrainDance OS is laid out in memory and on the disk.
+
+### 11.1. Memory Layout
+
+| **Memory Location** | **Component** | **Description** |
+| ------------------- | ------------- | --------------- |
+| `0x7C00` | Bootloader | The first 512 bytes of the disk, loaded by the BIOS. |
+| `0x8000` | Kernel (Initial Load) | The kernel is temporarily loaded here before being moved to its final location. |
+| `0x100000` (1MB) | Kernel | The final location of the kernel code, data, and BSS, as defined by the linker script. |
+| `0x400000` (4MB) | Kernel Heap | The start of the kernel's dynamic memory allocation area. |
+
+### 11.2. Disk Sector Layout
+
+| **Sector(s)** | **Component** | **Description** |
+| ------------- | ------------- | --------------- |
+| 0 | Bootloader | The Master Boot Record (MBR). |
+| 1 - 128 | Kernel | The kernel binary, loaded by the bootloader. |
+| 129 - 132 | BDFS File Table | The metadata for the BrainDance File System. |
+| 133+ | BDFS Data | The region where file content is stored. |
