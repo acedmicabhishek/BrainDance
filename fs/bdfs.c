@@ -75,7 +75,7 @@ void bdfs_list_files() {
     kprintf("Files:\n");
     for (int i = 0; i < BDFS_MAX_FILES; i++) {
         if (file_table[i].name[0] != '\0') {
-            kprintf("- %s (%d bytes)\n", file_table[i].name, file_table[i].length);
+            kprintf("- %s (%u bytes)\n", file_table[i].name, file_table[i].length);
         }
     }
 }

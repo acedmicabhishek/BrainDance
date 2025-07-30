@@ -101,6 +101,27 @@ void print_int(int number, unsigned char color) {
     }
 }
 
+void print_uint(unsigned int number, unsigned char color) {
+    char buffer[11]; // Enough for 32-bit unsigned int
+    int i = 0;
+
+    if (number == 0) {
+        print("0", color);
+        return;
+    }
+
+    while (number != 0) {
+        buffer[i++] = (number % 10) + '0';
+        number /= 10;
+    }
+
+    // Reverse the buffer
+    for (int j = i - 1; j >= 0; j--) {
+        char c[2] = { buffer[j], 0 };
+        print(c, color);
+    }
+}
+
 void print_hex(unsigned int number, unsigned char color) {
     char hex_chars[] = "0123456789ABCDEF";
     print("0x", color);
@@ -201,6 +222,11 @@ void kprintf(const char* fmt, ...) {
                 case 'd': {
                     int val = va_arg(args, int);
                     print_int(val, 0x07);
+                    break;
+                }
+                case 'u': {
+                    unsigned int val = va_arg(args, unsigned int);
+                    print_uint(val, 0x07);
                     break;
                 }
                 case 'x': {

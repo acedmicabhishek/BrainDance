@@ -47,14 +47,14 @@ void ataread_command(const char* lba_str) {
     uint32_t lba = atoi(lba_str);
     char buffer[512];
     if (ata_read_sector(lba, buffer) == 0) {
-        kprintf("Successfully read sector %d.\n", lba);
+        kprintf("Successfully read sector %u.\n", lba);
         // Print buffer as hex
         for(int i = 0; i < 512; i++) {
             kprintf("%x ", (unsigned char)buffer[i]);
         }
         kprintf("\n");
     } else {
-        kprintf("Failed to read sector %d.\n", lba);
+        kprintf("Failed to read sector %u.\n", lba);
     }
 }
 
@@ -69,9 +69,9 @@ void atawrite_command(const char* lba_str, const char* data) {
     strncpy(buffer, data, 511);
 
     if (ata_write_sector(lba, buffer) == 0) {
-        kprintf("Successfully wrote to sector %d.\n", lba);
+        kprintf("Successfully wrote to sector %u.\n", lba);
     } else {
-        kprintf("Failed to write to sector %d.\n", lba);
+        kprintf("Failed to write to sector %u.\n", lba);
     }
 }
    
@@ -100,7 +100,7 @@ void atawrite_command(const char* lba_str, const char* data) {
        uint32_t bytes_read;
        memset(buffer, 0, 1024);
        if (bdfs_read_file(filename, buffer, &bytes_read) == 0) {
-           kprintf("DEBUG: bytes_read = %d\n", bytes_read);
+           kprintf("DEBUG: bytes_read = %u\n", bytes_read);
            // Print hex and ASCII representation
            for (uint32_t i = 0; i < bytes_read; i++) {
                kprintf("%02x ", buffer[i]);
