@@ -25,6 +25,9 @@ void help_command() {
     print("  write    - Write to a file\n", 0x07);
     print("  cat      - Read from a file\n", 0x07);
     print("  rm       - Remove a file\n", 0x07);
+    print("  mv       - Rename a file\n", 0x07);
+    print("  mkdir    - Create a directory\n", 0x07);
+    print("  cd       - Change directory\n", 0x07);
     print("  format   - Format the filesystem\n", 0x07);
     print("  ataread  - Read a sector from the ATA drive\n", 0x07);
     print("  atawrite - Write a sector to the ATA drive\n", 0x07);
@@ -124,6 +127,39 @@ void atawrite_command(const char* lba_str, const char* data) {
        }
    }
 
+   void mv_command(const char* old_filename, const char* new_filename) {
+       int result = bdfs_rename_file(old_filename, new_filename);
+       if (result == 0) {
+           kprintf("File '%s' renamed to '%s'.\n", old_filename, new_filename);
+       } else if (result == -2) {
+           kprintf("Error: Source file '%s' not found.\n", old_filename);
+       } else if (result == -3) {
+           kprintf("Error: Destination file '%s' already exists.\n", new_filename);
+       } else {
+           kprintf("Error renaming file '%s'.\n", old_filename);
+       }
+   }
+
+   void mkdir_command(const char* dirname) {
+       int result = bdfs_mkdir(dirname);
+       if (result == 0) {
+           kprintf("Directory '%s' created.\n", dirname);
+       } else if (result == -2) {
+           kprintf("Error: '%s' already exists.\n", dirname);
+       } else {
+           kprintf("Error creating directory '%s'.\n", dirname);
+       }
+   }
+
+   void cd_command(const char* dirname) {
+       int result = bdfs_chdir(dirname);
+       if (result == -1) {
+           kprintf("Error: Directory '%s' not found.\n", dirname);
+       } else if (result == -2) {
+           kprintf("Error: '%s' is not a directory.\n", dirname);
+       }
+   }
+
    void format_command() {
        uint8_t buffer[BDFS_FILE_TABLE_SECTORS * 512];
        memset(buffer, 0, sizeof(buffer));
@@ -211,6 +247,28 @@ void process_command(const char* command) {
         } else {
             print("Usage: rm <filename>\n", 0x04);
         }
+   } else if (strcmp(token, "mv") == 0) {
+       char* old_filename = strtok(NULL, " ");
+       char* new_filename = strtok(NULL, " ");
+       if (old_filename && new_filename) {
+           mv_command(old_filename, new_filename);
+       } else {
+           print("Usage: mv <source> <destination>\n", 0x04);
+       }
+   } else if (strcmp(token, "mkdir") == 0) {
+       char* dirname = strtok(NULL, " ");
+       if (dirname) {
+           mkdir_command(dirname);
+       } else {
+           print("Usage: mkdir <dirname>\n", 0x04);
+       }
+   } else if (strcmp(token, "cd") == 0) {
+       char* dirname = strtok(NULL, " ");
+       if (dirname) {
+           cd_command(dirname);
+       } else {
+           print("Usage: cd <dirname>\n", 0x04);
+       }
    } else if (strcmp(token, "format") == 0) {
        format_command();
    } else if (strcmp(token, "ataread") == 0) {
@@ -227,8 +285,14 @@ void process_command(const char* command) {
     }
 }
 
+void print_prompt() {
+    char dir_name[BDFS_MAX_FILENAME_LENGTH];
+    bdfs_get_current_dir_name(dir_name);
+    kprintf("%s> ", dir_name);
+}
+
 void start_shell() {
-    print(PROMPT, 0x07);
+    print_prompt();
     while (1) {
         char c = keyboard_get_char();
         if (c == '\0') {
@@ -242,7 +306,7 @@ void start_shell() {
             process_command(command_buffer);
             command_len = 0;
             memset(command_buffer, 0, MAX_COMMAND_LENGTH); // Clear buffer
-            print(PROMPT, 0x07);
+            print_prompt();
         } else if (c == '\b') { // Backspace
             if (command_len > 0) {
                 command_len--;
@@ -251,8 +315,8 @@ void start_shell() {
         } else {
             if (command_len < MAX_COMMAND_LENGTH - 1) {
                 command_buffer[command_len++] = c;
+                print_char(c, 0x07);
             }
-            print_char(c, 0x07); // Echo to screen
         }
     }
 }
