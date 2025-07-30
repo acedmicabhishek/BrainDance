@@ -1,77 +1,33 @@
 # BrainDance
-An OS from Scratch aiming for cyberNet
+An OS from Scratch aiming for cyberNet.
 
-## done : 
+BrainDance is an educational operating system built from scratch. This project documents the journey of creating a simple OS, covering its architecture, components, and functionality from the bootloader to a basic shell.
 
-IDT structure
+## Features
 
-ISRs (0–31)
+*   **Bootloader**: A 16-bit assembly bootloader that transitions the CPU to 32-bit protected mode.
+*   **Kernel**: A C-based kernel that initializes core systems like the IDT, ISRs, IRQs, and a PIT timer.
+*   **Memory Management**: Includes both paging for virtual memory and a simple bump allocator for kernel heap management.
+*   **Drivers**: Supports PS/2 keyboard input and ATA (IDE) hard drive for storage.
+*   **Filesystem**: A custom-built filesystem, BDFS (BrainDance File System), with support for creating, deleting, reading, and writing files.
+*   **Shell**: An interactive command-line interface with commands for file operations, system information (`meminfo`, `time`), and direct hardware access (`ataread`, `atawrite`).
+*   **Standard Library**: A minimal `libc` implementation providing essential functions like `memcpy`, `strlen`, and a `kprintf` for formatted output.
 
-Basic IRQ remapping (if going for hardware)
+## Building and Running
 
-Use kprintf() inside ISRs
+The project uses a `Makefile` to automate the build process.
 
+1.  **Build the OS:**
+    ```sh
+    make
+    ```
+    This will produce a bootable disk image named `bdos.img`.
 
-## 2. Timer (PIT) Initialization
-Enable regular ticks via IRQ0 (for scheduling later).
+2.  **Run with QEMU:**
+    ```sh
+    qemu-system-i386 -hda bdos.img
+    ```
 
-PIT init code (channel 0, mode 2, freq = 100 Hz)
+## Documentation
 
-Tick counter inside timer_handler()
-
-Use it to test log() or scroll logic
-
-
-## 3. Keyboard Driver
-Handle keyboard interrupts via IRQ1.
-
-
-Read scancode from 0x60
-
-Convert to ASCII (basic US layout)
-
-Echo input on screen
-# What to implement:
-
-## 4. Physical Memory Management (PMM)
-
-Build a simple bump allocator
-
-Or better: a bitmap-based page allocator (like alloc_frame() / free_frame())
-
-This unlocks:
-
-Paging
-
-Heap
-
-Multitasking later
-
-## 5. Paging (Virtual Memory)
-Enable 4KB page mapping (x86 paging):
-
-Set up Page Directory + Tables
-
-Identity-map first few MBs
-
-Enable bit in CR0, load CR3
-
-## 6. Basic Kernel Shell / Monitor
-Let’s make BrainDance talk to you:
-
-Take keyboard input
-
-Parse basic commands like:
-
-meminfo
-
-help
-
-uptime
-
-clear
-
-## 7. Heap & Dynamic Allocation
-Implement:
-
-kmalloc(), kfree()
+For a complete and detailed explanation of the OS architecture, components, and functionality, please see the full documentation in [`docs.md`](docs.md).
