@@ -16,9 +16,18 @@ void editor_init(const char* filename) {
 
     // Load file content if it exists
     uint32_t bytes_read;
-    if (bdfs_read_file(filename, (uint8_t*)editor.buffer, &bytes_read) == 0) {
-        // For simplicity, we assume the file fits into our buffer.
-        // A more robust implementation would handle larger files.
+    uint8_t file_content[EDITOR_ROWS * EDITOR_COLS];
+    if (bdfs_read_file(filename, file_content, &bytes_read) == 0) {
+        int row = 0;
+        int col = 0;
+        for (uint32_t i = 0; i < bytes_read && row < EDITOR_ROWS; i++) {
+            if (file_content[i] == '\n') {
+                row++;
+                col = 0;
+            } else if (col < EDITOR_COLS - 1) {
+                editor.buffer[row][col++] = file_content[i];
+            }
+        }
     }
 }
 
