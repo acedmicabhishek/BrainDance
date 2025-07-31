@@ -1,4 +1,6 @@
 #include "./include/memcore.h"
+#include "./include/ports.h"
+#include "./include/types.h"
 
 static int cursor_row = 0;
 static int cursor_col = 0;
@@ -329,4 +331,72 @@ char* strncpy(char* dest, const char* src, unsigned int n) {
     }
 
     return original_dest;
-}
+   }
+   
+   // A very basic snprintf that only handles %s, %c, and %d
+   int snprintf(char* str, unsigned int size, const char* format, ...) {
+       va_list args;
+       va_start(args, format);
+   
+       unsigned int written = 0;
+       for (int i = 0; format[i] != '\0' && written < size - 1; i++) {
+           if (format[i] == '%') {
+               i++;
+               switch (format[i]) {
+                   case 'c': {
+                       char c = (char)va_arg(args, int);
+                       str[written++] = c;
+                       break;
+                   }
+                   case 's': {
+                       const char* s = va_arg(args, const char*);
+                       while (*s && written < size - 1) {
+                           str[written++] = *s++;
+                       }
+                       break;
+                   }
+                   case 'd': {
+                       int n = va_arg(args, int);
+                       char buf[12];
+                       int j = 0;
+                       if (n < 0) {
+                           str[written++] = '-';
+                           n = -n;
+                       }
+                       do {
+                           buf[j++] = (n % 10) + '0';
+                           n /= 10;
+                       } while (n > 0);
+                       while (j > 0 && written < size - 1) {
+                           str[written++] = buf[--j];
+                       }
+                       break;
+                   }
+               }
+           } else {
+               str[written++] = format[i];
+           }
+       }
+   
+       str[written] = '\0';
+       va_end(args);
+       return written;
+   }
+   
+   void print_char_at(char c, unsigned char color, int x, int y) {
+       if (x >= VGA_WIDTH || y >= VGA_HEIGHT) return;
+       int offset = (y * VGA_WIDTH + x) * 2;
+       VGA_MEMORY[offset] = c;
+       VGA_MEMORY[offset + 1] = color;
+   }
+   
+   void set_cursor(int x, int y) {
+       if (x >= VGA_WIDTH || y >= VGA_HEIGHT) return;
+       cursor_col = x;
+       cursor_row = y;
+       uint16_t pos = y * VGA_WIDTH + x;
+       outb(0x3D4, 0x0F);
+       outb(0x3D5, (uint8_t)(pos & 0xFF));
+       outb(0x3D4, 0x0E);
+       outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
+   }

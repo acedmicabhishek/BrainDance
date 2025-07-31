@@ -17,20 +17,33 @@ unsigned char kbd_us[128] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 char last_char = 0;
+static unsigned char last_scancode = 0;
+int ctrl_pressed = 0;
+
 void keyboard_handler(struct regs *r) {
     unsigned char scancode;
 
     // Read from keyboard data port
     scancode = inb(KBD_DATA_PORT);
+    last_scancode = scancode;
 
     // If the top bit of the scancode is set, a key has been released
     if (scancode & 0x80) {
-        // Handle key release (e.g., for shift, ctrl, alt)
+        if (scancode == 0x9D) { // Ctrl release
+            ctrl_pressed = 0;
+        }
     } else {
         // Key pressed
-        if (scancode < 128) {
-            char c = kbd_us[scancode];
-            last_char = c; // Store the character for keyboard_get_char()
+        if (scancode == 0x1D) { // Ctrl press
+            ctrl_pressed = 1;
+        } else if (scancode < 128) {
+            if (ctrl_pressed) {
+                // Send a special code for Ctrl + key
+                last_char = 0; // Don't send a normal character
+            } else {
+                char c = kbd_us[scancode];
+                last_char = c; // Store the character for keyboard_get_char()
+            }
         }
     }
 }
@@ -40,7 +53,27 @@ void keyboard_install() {
 }
 
 char keyboard_get_char() {
-    while (last_char == 0);
+    if (last_char != 0) {
+        char c = last_char;
+        last_char = 0;
+        return c;
+    }
+    
+    return 0;
+}
+
+unsigned char keyboard_get_scancode() {
+    while (last_scancode == 0);
+    unsigned char sc = last_scancode;
+    last_scancode = 0;
+    return sc;
+}
+
+char keyboard_get_char_blocking() {
+    while (last_char == 0) {
+        asm volatile("sti");
+        asm volatile("hlt");
+    }
     char c = last_char;
     last_char = 0;
     return c;
