@@ -36,7 +36,22 @@ void help_command() {
     print("  format   - Format the filesystem\n", COLOR_SYSTEM);
     print("  ataread  - Read a sector from the ATA drive\n", COLOR_SYSTEM);
     print("  atawrite - Write a sector to the ATA drive\n", COLOR_SYSTEM);
+    print("  sysinfo  - Display system information\n", COLOR_SYSTEM);
    }
+
+void sysinfo_command() {
+    extern uint32_t _bss_start[], _kernel_end[];
+    uint32_t kernel_size = (uint32_t)_kernel_end - (uint32_t)_bss_start;
+
+    print("[sysinfo] brainDance v0.3\n", COLOR_SYSTEM);
+    kprintf("[sysinfo] Kernel Size: %d KB\n", kernel_size / 1024);
+    kprintf("[sysinfo] Total RAM: %d MB\n", pmm_get_total_memory() / 1024 / 1024);
+    kprintf("[sysinfo] Free RAM: %d MB\n", pmm_get_free_memory() / 1024 / 1024);
+    // kprintf("[sysinfo] Heap Usage: %d KB / %d KB\n", heap_get_usage() / 1024, (HEAP_END - HEAP_START) / 1024);
+    kprintf("[sysinfo] Uptime: %d seconds\n", timer_ticks / 100);
+    print("[sysinfo] Drivers: ATA, Keyboard, Timer\n", COLOR_SYSTEM);
+    print("[sysinfo] Shell User: V\n", COLOR_SYSTEM);
+}
 
 // Simple atoi implementation
 int atoi(const char* str) {
@@ -110,7 +125,7 @@ void atawrite_command(const char* lba_str, const char* data) {
    
    void write_command(const char* filename, const char* data) {
        if (bdfs_write_file(filename, (const uint8_t*)data, strlen(data)) > 0) {
-           print("✔ Wrote to file '", COLOR_SUCCESS);
+           print("Wrote to file '", COLOR_SUCCESS);
            print(filename, COLOR_SUCCESS);
            print("'.\n", COLOR_SUCCESS);
        } else {
@@ -147,7 +162,7 @@ void atawrite_command(const char* lba_str, const char* data) {
    
    void rm_command(const char* filename) {
        if (bdfs_delete_file(filename) == 0) {
-           print("✔ File '", COLOR_SUCCESS);
+           print(" File '", COLOR_SUCCESS);
            print(filename, COLOR_SUCCESS);
            print("' deleted.\n", COLOR_SUCCESS);
        } else {
@@ -160,7 +175,7 @@ void atawrite_command(const char* lba_str, const char* data) {
    void mv_command(const char* old_filename, const char* new_filename) {
        int result = bdfs_rename_file(old_filename, new_filename);
        if (result == 0) {
-           print("✔ File '", COLOR_SUCCESS);
+           print("File '", COLOR_SUCCESS);
            print(old_filename, COLOR_SUCCESS);
            print("' renamed to '", COLOR_SUCCESS);
            print(new_filename, COLOR_SUCCESS);
@@ -183,7 +198,7 @@ void atawrite_command(const char* lba_str, const char* data) {
    void mkdir_command(const char* dirname) {
        int result = bdfs_mkdir(dirname);
        if (result == 0) {
-           print("✔ Directory '", COLOR_SUCCESS);
+           print("Directory '", COLOR_SUCCESS);
            print(dirname, COLOR_SUCCESS);
            print("' created.\n", COLOR_SUCCESS);
        } else if (result == -2) {
@@ -273,6 +288,8 @@ void process_command(const char* command) {
         time_command();
     } else if (strcmp(token, "halt") == 0) {
         halt_command();
+    } else if (strcmp(token, "sysinfo") == 0) {
+        sysinfo_command();
     } else if (strcmp(token, "ls") == 0) {
         ls_command();
     } else if (strcmp(token, "touch") == 0) {
