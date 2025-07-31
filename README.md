@@ -46,9 +46,9 @@ For a complete and detailed explanation of the OS architecture, components, and 
 
 ## 2. Basic Text Editor
 
-- Nano-style built-in editor  
+- Nano-style built-in editor ( C.A.B.L.E. – Cybernetic Access Buffer for Lightweight Editing ) 
 - Save/load to BDFS files  
-- Stored in `/app/utils/textedit.bd`  
+- Stored in `/app/utils/cable.bd`  
 
 ## 3. Program Execution Framework
 
