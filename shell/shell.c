@@ -24,6 +24,7 @@ void help_command() {
     print("  ls       - List files\n", COLOR_SYSTEM);
     print("  touch    - Create a file\n", COLOR_SYSTEM);
     print("  write    - Write to a file\n", COLOR_SYSTEM);
+    print("  echo     - Print text to the screen\n", COLOR_SYSTEM);
     print("  cat      - Read from a file\n", COLOR_SYSTEM);
     print("  rm       - Remove a file\n", COLOR_SYSTEM);
     print("  mv       - Rename a file\n", COLOR_SYSTEM);
@@ -245,6 +246,13 @@ void halt_command() {
     asm volatile("hlt"); // Halt the CPU
 }
 
+void echo_command(const char* text) {
+    if (text) {
+        print(text, COLOR_INPUT);
+        print("\n", COLOR_INPUT);
+    }
+}
+
 // Function to process a command
 void process_command(const char* command) {
     char cmd[MAX_COMMAND_LENGTH];
@@ -279,6 +287,9 @@ void process_command(const char* command) {
         } else {
             print("Usage: write <filename> <data>\n", COLOR_ERROR);
         }
+    } else if (strcmp(token, "echo") == 0) {
+        char* text = strtok(NULL, "");
+        echo_command(text);
     } else if (strcmp(token, "cat") == 0) {
         token = strtok(NULL, " ");
         if (token) {
