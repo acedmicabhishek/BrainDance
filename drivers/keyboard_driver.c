@@ -70,11 +70,12 @@ unsigned char keyboard_get_scancode() {
 }
 
 char keyboard_get_char_blocking() {
-    while (last_char == 0) {
+    char c;
+    do {
         asm volatile("sti");
         asm volatile("hlt");
-    }
-    char c = last_char;
+        c = last_char;
+    } while (c == 0);
     last_char = 0;
     return c;
 }
