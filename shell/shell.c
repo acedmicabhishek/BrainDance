@@ -7,6 +7,7 @@
 #include "include/ata.h"
 #include "include/colors.h"
 #include "include/cable.h"
+#include "include/exec.h"
 
 #define PROMPT "BD> "
 #define MAX_COMMAND_LENGTH 256
@@ -346,10 +347,18 @@ void process_command(const char* command) {
        char* data = strtok(NULL, "");
        atawrite_command(lba_str, data);
     } else if (strlen(command) > 0) {
-        print("Unknown command: ", COLOR_ERROR);
-        print(command, COLOR_ERROR);
-        print("\n", COLOR_ERROR);
-    }
+       if (ends_with(command, ".bdx")) {
+           if (execute_bdx(command) != 0) {
+               print("Error executing ", COLOR_ERROR);
+               print(command, COLOR_ERROR);
+               print("\n", COLOR_ERROR);
+           }
+       } else {
+           print("Unknown command: ", COLOR_ERROR);
+           print(command, COLOR_ERROR);
+           print("\n", COLOR_ERROR);
+       }
+   }
 }
 
 void print_prompt() {
