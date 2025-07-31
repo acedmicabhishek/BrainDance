@@ -6,6 +6,7 @@
 #include "include/bdfs.h"
 #include "include/ata.h"
 #include "include/colors.h"
+#include "include/cable.h"
 
 #define PROMPT "BD> "
 #define MAX_COMMAND_LENGTH 256
@@ -26,6 +27,7 @@ void help_command() {
     print("  write    - Write to a file\n", COLOR_SYSTEM);
     print("  echo     - Print text to the screen\n", COLOR_SYSTEM);
     print("  cat      - Read from a file\n", COLOR_SYSTEM);
+    print("  cable    - Open a text editor\n", COLOR_SYSTEM);
     print("  rm       - Remove a file\n", COLOR_SYSTEM);
     print("  mv       - Rename a file\n", COLOR_SYSTEM);
     print("  mkdir    - Create a directory\n", COLOR_SYSTEM);
@@ -296,6 +298,14 @@ void process_command(const char* command) {
             cat_command(token);
         } else {
             print("Usage: cat <filename>\n", COLOR_ERROR);
+        }
+    } else if (strcmp(token, "cable") == 0) {
+        token = strtok(NULL, " ");
+        if (token) {
+            cable_main(token);
+            clear_screen(COLOR_SYSTEM);
+        } else {
+            print("Usage: cable <filename>\n", COLOR_ERROR);
         }
     } else if (strcmp(token, "rm") == 0) {
         token = strtok(NULL, " ");
