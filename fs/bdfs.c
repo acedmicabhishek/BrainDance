@@ -1,6 +1,7 @@
 #include "include/bdfs.h"
 #include "include/ata.h"
 #include "include/memcore.h"
+#include "include/colors.h"
 
 static bdfs_file_entry_t file_table[BDFS_MAX_FILES];
 static uint32_t current_dir_inode = 0; // Root directory is inode 0
@@ -13,6 +14,33 @@ static int find_entry_in_dir(const char* name, uint32_t parent_inode) {
         }
     }
     return -1;
+}
+
+// Find a free entry in the file table
+static int find_free_entry() {
+    for (int i = 0; i < BDFS_MAX_FILES; i++) {
+        if (file_table[i].name[0] == '\0') {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// Helper to create a directory entry without syncing
+static int bdfs_create_dir_entry(const char* dirname, uint32_t parent_inode) {
+    if (strlen(dirname) >= BDFS_MAX_FILENAME_LENGTH) return -1;
+    if (find_entry_in_dir(dirname, parent_inode) != -1) return -2;
+
+    int free_index = find_free_entry();
+    if (free_index == -1) return -3;
+
+    strcpy(file_table[free_index].name, dirname);
+    file_table[free_index].type = BDFS_FILE_TYPE_DIRECTORY;
+    file_table[free_index].parent_inode = parent_inode;
+    file_table[free_index].start_sector = 0; // Not used for dirs
+    file_table[free_index].length = 0; // Not used for dirs
+    
+    return free_index;
 }
 
 void bdfs_init() {
@@ -29,6 +57,18 @@ void bdfs_init() {
         file_table[0].type = BDFS_FILE_TYPE_DIRECTORY;
         file_table[0].parent_inode = 0; // Root's parent is itself
         file_table[0].length = 0;
+
+        // Create default directories
+        bdfs_create_dir_entry("soul", 0);
+        bdfs_create_dir_entry("cortex", 0);
+        int vault_inode = bdfs_create_dir_entry("vault", 0);
+        bdfs_create_dir_entry("chrome", 0);
+        bdfs_create_dir_entry("drift", 0);
+        bdfs_create_dir_entry("ghost", 0);
+
+        if (vault_inode >= 0) {
+            bdfs_create_dir_entry("cypher", vault_inode);
+        }
 
         bdfs_sync_file_table();
     } else {
@@ -50,16 +90,6 @@ void bdfs_sync_file_table() {
     }
 }
 
-// Find a free entry in the file table
-static int find_free_entry() {
-    for (int i = 0; i < BDFS_MAX_FILES; i++) {
-        if (file_table[i].name[0] == '\0') {
-            return i;
-        }
-    }
-    return -1;
-}
-
 int bdfs_create_file(const char* filename) {
     if (strlen(filename) >= BDFS_MAX_FILENAME_LENGTH) return -1;
     if (find_entry_in_dir(filename, current_dir_inode) != -1) return -2;
@@ -78,20 +108,12 @@ int bdfs_create_file(const char* filename) {
 }
 
 int bdfs_mkdir(const char* dirname) {
-    if (strlen(dirname) >= BDFS_MAX_FILENAME_LENGTH) return -1;
-    if (find_entry_in_dir(dirname, current_dir_inode) != -1) return -2;
-
-    int free_index = find_free_entry();
-    if (free_index == -1) return -3;
-
-    strcpy(file_table[free_index].name, dirname);
-    file_table[free_index].type = BDFS_FILE_TYPE_DIRECTORY;
-    file_table[free_index].parent_inode = current_dir_inode;
-    file_table[free_index].start_sector = 0; // Not used for dirs
-    file_table[free_index].length = 0; // Not used for dirs
-
-    bdfs_sync_file_table();
-    return 0;
+    int result = bdfs_create_dir_entry(dirname, current_dir_inode);
+    if (result >= 0) {
+        bdfs_sync_file_table();
+        return 0;
+    }
+    return result;
 }
 
 int bdfs_delete_file(const char* filename) {
@@ -119,13 +141,30 @@ int bdfs_rename_file(const char* old_filename, const char* new_filename) {
 }
 
 void bdfs_list_files() {
-    kprintf("Listing for /%s:\n", file_table[current_dir_inode].name);
+    print("Listing for /", COLOR_SYSTEM);
+    print(file_table[current_dir_inode].name, COLOR_SYSTEM);
+    print(":\n", COLOR_SYSTEM);
+
     for (int i = 0; i < BDFS_MAX_FILES; i++) {
         if (file_table[i].name[0] != '\0' && file_table[i].parent_inode == current_dir_inode) {
             if (file_table[i].type == BDFS_FILE_TYPE_DIRECTORY) {
-                kprintf("d %s\n", file_table[i].name);
+                uint8_t color = COLOR_DIR; // Default directory color
+                if (strcmp(file_table[i].name, "soul") == 0) color = COLOR_DIR_SOUL;
+                else if (strcmp(file_table[i].name, "cortex") == 0) color = COLOR_DIR_CORTEX;
+                else if (strcmp(file_table[i].name, "vault") == 0) color = COLOR_DIR_VAULT;
+                else if (strcmp(file_table[i].name, "chrome") == 0) color = COLOR_DIR_CHROME;
+                else if (strcmp(file_table[i].name, "drift") == 0) color = COLOR_DIR_DRIFT;
+                else if (strcmp(file_table[i].name, "ghost") == 0) color = COLOR_DIR_GHOST;
+                
+                print("d ", color);
+                print(file_table[i].name, color);
+                print("\n", color);
             } else {
-                kprintf("- %s (%u bytes)\n", file_table[i].name, file_table[i].length);
+                print("- ", COLOR_FILE);
+                print(file_table[i].name, COLOR_FILE);
+                print(" (", COLOR_GHOST);
+                print_int(file_table[i].length, COLOR_GHOST);
+                print(" bytes)\n", COLOR_GHOST);
             }
         }
     }
