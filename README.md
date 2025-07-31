@@ -31,3 +31,65 @@ The project uses a `Makefile` to automate the build process.
 ## Documentation
 
 For a complete and detailed explanation of the OS architecture, components, and functionality, please see the full documentation in [`docs.md`](docs.md).
+
+# 📦 Upcoming Features / Modules
+
+## 1. Built-in Apps Folder
+
+```
+/app/
+├── core/    → echo, sysinfo, memstat, etc.
+├── utils/   → textedit.bd (nano-style), convert.bd, scan.bd
+├── games/   → netrunner.bd, deckcrack.bd, breakchip.bd
+├── ai/      → analyze.bd, ghostsync.bd (flair-only)
+```
+
+## 2. Basic Text Editor
+
+- Nano-style built-in editor  
+- Save/load to BDFS files  
+- Stored in `/app/utils/textedit.bd`  
+
+## 3. Program Execution Framework
+
+- Load `.bdx` files from `/soul/`  
+- Simple interpreter or native loader  
+- CLI tools & apps can be run from shell  
+
+## 4. System Call Interface (Mini ABI)
+
+System-level functions exposed to programs:
+
+- `syscall 0` → print  
+- `syscall 1` → read  
+- `syscall 2` → open file  
+- `syscall 3` → malloc (optional)  
+
+Helps programs interact with BD kernel  
+
+## 5. Fake AI Hooks (Flair Only)
+
+- Monitor `/drift/`, `/ghost/`, etc.  
+- Print fake logs like:  
+
+```
+[brain] AI analyzing drift logs...
+[brain] Ghost sync triggered from ghost/420.tmp
+```
+
+## 6. Optional: Networking Simulation
+
+- Fake sockets in `/vault/netrunner.sock`  
+- Could simulate ping, connect, hack, etc.  
+- Used in mini-game or CLI simulation  
+
+---
+
+##  Intentionally Skipped / Not Needed
+
+- File permissions system  
+- Mountable virtual folders  
+- Interactive shell with autocomplete  
+- Scriptable init system  
+- Fancy Cyberdeck ASCII UI shell  
+- Icons for files/folders  
