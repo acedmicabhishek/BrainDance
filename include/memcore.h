@@ -3,13 +3,17 @@
 
 #define NULL ((void*)0)
 
+#include "include/types.h"
+
 void* memcpy(void* dest, const void* src, unsigned int count);
 void* memset(void* dest, int value, unsigned int count);
 int strlen(const char* str);
 int strcmp(const char* str1, const char* str2);
 char* strcpy(char* dest, const char* src);
 char* strncpy(char* dest, const char* src, unsigned int n);
+int strncmp(const char* str1, const char* str2, size_t n);
 char* strtok(char* str, const char* delimiters);
+int ends_with(const char* str, const char* suffix);
 void print_backspace();
 
 void print(const char* msg, unsigned char color);

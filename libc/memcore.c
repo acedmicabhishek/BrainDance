@@ -48,6 +48,18 @@ int strcmp(const char* str1, const char* str2) {
     return *(const unsigned char*)str1 - *(const unsigned char*)str2;
 }
 
+int strncmp(const char* str1, const char* str2, size_t n) {
+    while (n && *str1 && (*str1 == *str2)) {
+        str1++;
+        str2++;
+        n--;
+    }
+    if (n == 0) {
+        return 0;
+    }
+    return *(const unsigned char*)str1 - *(const unsigned char*)str2;
+}
+
 void print_backspace() {
     if (cursor_col > 0) {
         cursor_col--;
@@ -331,6 +343,18 @@ char* strncpy(char* dest, const char* src, unsigned int n) {
     }
 
     return original_dest;
+   }
+   
+   int ends_with(const char* str, const char* suffix) {
+       if (!str || !suffix) {
+           return 0;
+       }
+       size_t str_len = strlen(str);
+       size_t suffix_len = strlen(suffix);
+       if (suffix_len > str_len) {
+           return 0;
+       }
+       return strncmp(str + str_len - suffix_len, suffix, suffix_len) == 0;
    }
    
    // A very basic snprintf that only handles %s, %c, and %d
