@@ -16,6 +16,16 @@ void interpret_bdx(uint8_t* bytecode) {
                 ip += strlen(str) + 1; // +1 for null terminator
                 break;
             }
+            case OPCODE_SYSCALL_WRITE: {
+                char* path = (char*)&bytecode[ip];
+                ip += strlen(path) + 1;
+                uint32_t len = *(uint32_t*)&bytecode[ip];
+                ip += sizeof(uint32_t);
+                uint8_t* data = &bytecode[ip];
+                ip += len;
+                bdfs_write_file(path, data, len);
+                break;
+            }
             case OPCODE_EXIT: {
                 return;
             }

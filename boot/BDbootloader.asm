@@ -12,9 +12,13 @@ start:
 
     ; --- Load Kernel from Disk ---
     ; Uses BIOS interrupt 0x13 to read from the disk
-    mov ah, 0x42      ; Function 42h: Extended Read
-    mov dl, 0x80      ; Drive number (must be set)
-    mov si, dap       ; DS:SI points to the DAP
+    mov ah, 0x02      ; Function 02h: Read Sectors
+    mov al, 128       ; Number of sectors to read (Kernel)
+    mov ch, 0         ; Cylinder number
+    mov cl, 2         ; Starting sector number (1 is bootloader)
+    mov dh, 0         ; Head number
+    mov dl, 0x80      ; Drive number
+    mov bx, 0x8000    ; Destination buffer
     int 0x13          ; Call BIOS disk services
     jc halt           ; If carry flag is set, halt
 
@@ -91,13 +95,6 @@ halt:
     jmp halt
 
 
-dap:
-    db 0x10  ; Size of packet (16 bytes)
-    db 0     ; Reserved
-    dw 128   ; Number of sectors to read
-    dw 0x8000; Destination buffer offset
-    dw 0     ; Destination buffer segment
-    dq 1     ; Start LBA (Logical Block Address)
 
 ; --- GDT Segment Selectors ---
 CODE_SEG equ 0x08
