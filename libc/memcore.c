@@ -1,6 +1,8 @@
-#include "./include/memcore.h"
-#include "./include/ports.h"
-#include "./include/types.h"
+#include "include/memcore.h"
+#include "include/ports.h"
+#include "include/types.h"
+#include "include/vesa.h"
+#include "include/font.h"
 
 static int cursor_row = 0;
 static int cursor_col = 0;
@@ -76,11 +78,10 @@ void print_backspace() {
 }
 
 void clear_screen(unsigned char color) {
-    for (int row = 0; row < VGA_HEIGHT; row++) {
-        for (int col = 0; col < VGA_WIDTH; col++) {
-            int offset = (row * VGA_WIDTH + col) * 2;
-            VGA_MEMORY[offset] = ' ';
-            VGA_MEMORY[offset + 1] = color;
+    uint16_t vesa_color = rgb565(color & 0xF, (color >> 4) & 0xF, (color >> 8) & 0xF);
+    for (int y = 0; y < vesa_get_height(); y++) {
+        for (int x = 0; x < vesa_get_width(); x++) {
+            vesa_put_pixel(x, y, vesa_color);
         }
     }
     cursor_row = 0;
@@ -149,17 +150,20 @@ void print_hex(unsigned int number, unsigned char color) {
 
 
 void print(const char* msg, unsigned char color) {
+    uint16_t vesa_color = rgb565(color & 0xF, (color >> 4) & 0xF, (color >> 8) & 0xF);
     for (int i = 0; msg[i] != 0; ++i) {
-        if (msg[i] == '\n' || cursor_col >= VGA_WIDTH) {
+        if (msg[i] == '\n' || cursor_col >= vesa_get_width() / FONT_WIDTH) {
             cursor_row++;
             cursor_col = 0;
             if (msg[i] == '\n') continue;
         }
-        if (cursor_row >= VGA_HEIGHT) scroll_up();
+        if (cursor_row >= vesa_get_height() / FONT_HEIGHT) {
+            // A proper scroll function for graphics mode would be needed here.
+            // For now, just reset to the top.
+            cursor_row = 0;
+        }
 
-        int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
-        VGA_MEMORY[offset] = msg[i];
-        VGA_MEMORY[offset + 1] = color;
+        vesa_draw_char(msg[i], cursor_col * FONT_WIDTH, cursor_row * FONT_HEIGHT, vesa_color);
         cursor_col++;
     }
 }

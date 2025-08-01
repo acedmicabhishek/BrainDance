@@ -41,9 +41,16 @@ read_map:
     int 0x15          ; Call BIOS services
     jc halt           ; If carry flag is set, A20 enable failed
 
+
     ; --- Set VESA Video Mode ---
-    mov ax, 0x4F02      ; Set Video Mode
-    mov bx, 0x11A | 0x4000 ; 1920x1080x16bpp with linear framebuffer
+    mov ax, 0x4F02
+    mov bx, 0x11A | 0x4000
+    int 0x10
+
+    ; --- Get VBE Mode Info ---
+    mov ax, 0x4F01
+    mov cx, 0x11A
+    mov di, 0x8000 ; Address to store VBE info
     int 0x10
 
     ; --- Load Global Descriptor Table (GDT) ---
@@ -87,7 +94,8 @@ init_pm:
     rep movsb            ; Repeat move byte string
 
     ; --- Jump to Kernel ---
-    call 0x100000        ; Call the kernel's entry point
+    jmp CODE_SEG:0x100000
+        ; Call the kernel's entry point
 
 halt:
     ; --- Halt the CPU ---

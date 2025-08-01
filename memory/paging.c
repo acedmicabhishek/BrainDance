@@ -149,3 +149,9 @@ uint32_t get_phys_addr(uint32_t virt_addr) {
     // Calculate physical address
     return (pte->frame << 12) + (virt_addr & 0xFFF);
 }
+
+void map_range(uint32_t phys_start, uint32_t virt_start, uint32_t size, uint32_t flags) {
+    for (uint32_t i = 0; i < size; i += 0x1000) {
+        map_page(phys_start + i, virt_start + i, flags);
+    }
+}

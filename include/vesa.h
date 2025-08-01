@@ -40,9 +40,10 @@ typedef struct {
     uint8_t reserved1[206];
 } __attribute__((packed)) vbe_mode_info_t;
 
-void vesa_init();
+void vesa_init(uint16_t* fb, uint16_t w, uint16_t h, uint16_t p);
 void vesa_put_pixel(int x, int y, uint16_t color);
 void vesa_draw_triangle(int x1, int y1, int x2, int y2, int x3, int y3, uint16_t color);
+void vesa_draw_char(char c, int x, int y, uint16_t color);
 uint16_t vesa_get_width();
 uint16_t vesa_get_height();
 

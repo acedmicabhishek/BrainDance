@@ -2,26 +2,32 @@
 #include "include/types.h"
 #include "include/memcore.h"
 #include "include/mathlib.h"
+#include "include/font.h"
 
 // VBE info block is at 0x8000 in memory after boot
-vbe_mode_info_t* vbe_mode_info = (vbe_mode_info_t*)0x8000;
 uint16_t* framebuffer;
+static uint16_t vesa_width;
+static uint16_t vesa_height;
+static uint16_t vesa_pitch;
 
-void vesa_init() {
-    framebuffer = (uint16_t*)vbe_mode_info->framebuffer;
+void vesa_init(uint16_t* fb, uint16_t w, uint16_t h, uint16_t p) {
+    framebuffer = fb;
+    vesa_width = w;
+    vesa_height = h;
+    vesa_pitch = p;
 }
 
 uint16_t vesa_get_width() {
-    return vbe_mode_info->width;
+    return vesa_width;
 }
 
 uint16_t vesa_get_height() {
-    return vbe_mode_info->height;
+    return vesa_height;
 }
 
 void vesa_put_pixel(int x, int y, uint16_t color) {
-    if (x >= 0 && x < vbe_mode_info->width && y >= 0 && y < vbe_mode_info->height) {
-        framebuffer[y * vbe_mode_info->pitch / 2 + x] = color;
+    if (framebuffer && x >= 0 && x < vesa_width && y >= 0 && y < vesa_height) {
+        framebuffer[y * vesa_pitch / 2 + x] = color;
     }
 }
 
@@ -54,4 +60,15 @@ void vesa_draw_triangle(int x1, int y1, int x2, int y2, int x3, int y3, uint16_t
     draw_line(x1, y1, x2, y2, color);
     draw_line(x2, y2, x3, y3, color);
     draw_line(x3, y3, x1, y1, color);
+}
+
+void vesa_draw_char(char c, int x, int y, uint16_t color) {
+    const uint8_t* glyph = font[(int)c];
+    for (int i = 0; i < FONT_HEIGHT; i++) {
+        for (int j = 0; j < FONT_WIDTH; j++) {
+            if ((glyph[i] >> (7 - j)) & 1) {
+                vesa_put_pixel(x + j, y + i, color);
+            }
+        }
+    }
 }

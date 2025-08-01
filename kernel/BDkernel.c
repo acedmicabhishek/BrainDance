@@ -28,10 +28,25 @@ void kernel_main() {
     // Initialize the PMM
     pmm_init(mmap_addr, mmap_entries);
 
-    clear_screen(0x07);
-    // Initialize VESA
-    vesa_init();
-    print("BrainDance Kernel Loaded.\n\n", 0x04);
+    // Initialize paging
+    paging_install();
+    print("INFO: Paging enabled\n", 0x02);
+
+    // Hardcoded values for 1920x1080x16bpp
+    uint32_t fb_addr = 0xE0000000;
+    uint16_t width = 1920;
+    uint16_t height = 1080;
+    uint16_t pitch = 3840;
+    uint32_t fb_size = pitch * height;
+
+    // Map VESA framebuffer
+    map_range(fb_addr, 0xC0000000, fb_size, PTE_PRESENT | PTE_RW | PTE_USER);
+
+    // Initialize VESA with the mapped address and hardcoded dimensions
+    vesa_init((uint16_t*)0xC0000000, width, height, pitch);
+
+    clear_screen(0x01); // Clear with blue
+    print("BrainDance Kernel Loaded.\n\n", 0x0F);
 
     // Print memory diagnostics
     unsigned int bss_size   = (unsigned int)(&_bss_end - &_bss_start);
@@ -51,22 +66,8 @@ void kernel_main() {
     irq_install();
     print("INFO: IDT, ISRs, and IRQs installed\n", 0x02);
 
-    // Initialize paging
-    paging_install();
-    print("INFO: Paging enabled\n", 0x02);
-
     // Heap is initialized by global heap_ptr in memory/heap.c
     // print("INFO: Kernel Heap initialized\n", 0x02);
-
-    // void* test1 = kmalloc(16);
-    // void* test2 = kmalloc(32);
-    // void* test3 = kmalloc(8);
-
-    // kprintf("Heap allocations:\n");
-    // kprintf("  test1 = %x\n", test1);
-    // kprintf("  test2 = %x\n", test2);
-    // kprintf("  test3 = %x\n", test3);
-
 
     // Initialize timer
     timer_install();
@@ -85,7 +86,6 @@ void kernel_main() {
 
     // Enable interrupts
     asm volatile ("sti");
-
 
     // Start the shell
     start_shell();

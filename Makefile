@@ -12,6 +12,9 @@ libc/memcore.o: libc/memcore.c include/memcore.h
 libc/mathlib.o: libc/mathlib.c include/mathlib.h
 	i686-elf-gcc $(CFLAGS) -c libc/mathlib.c -o libc/mathlib.o
 
+libc/font.o: libc/font.c include/font.h
+	i686-elf-gcc $(CFLAGS) -c libc/font.c -o libc/font.o
+
 # Compile PMM
 memory/pmm.o: memory/pmm.c include/pmm.h
 	i686-elf-gcc $(CFLAGS) -c memory/pmm.c -o memory/pmm.o
@@ -83,8 +86,8 @@ kernel/BDkernel.o: kernel/BDkernel.c include/memcore.h include/idt.h include/isr
 	i686-elf-gcc $(CFLAGS) -c kernel/BDkernel.c -o kernel/BDkernel.o
 
 # Link kernel
-BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o drivers/video/vesa.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o kernel/linker.ld
-	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o libc/mathlib.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o drivers/video/vesa.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o
+BDkernel.bin: kernel/BDkernel.o libc/memcore.o libc/mathlib.o libc/font.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o drivers/video/vesa.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o kernel/linker.ld
+	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o libc/mathlib.o libc/font.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o drivers/video/vesa.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o
 	objcopy -O binary BDkernel.elf BDkernel.bin
 
 # Create bootable image

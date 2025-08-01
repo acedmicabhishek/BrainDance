@@ -46,5 +46,6 @@ void paging_install();
 void map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags);
 void unmap_page(uint32_t virt_addr);
 uint32_t get_phys_addr(uint32_t virt_addr);
+void map_range(uint32_t phys_start, uint32_t virt_start, uint32_t size, uint32_t flags);
 
 #endif
