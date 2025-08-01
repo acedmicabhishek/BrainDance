@@ -109,9 +109,8 @@ The shell provides a command-line interface for interacting with the BrainDance 
 - `rm <filename>`: Deletes a file.
 - `write <filename> <data>`: Writes data to a file, overwriting any existing content.
 - `cat <filename>`: Reads and displays the content of a file.
-- `format`: Formats the disk, creating a new, empty BDFS filesystem.
-- `ataread <lba>`: Reads a raw sector from the disk at the specified LBA.
-- `atawrite <lba> <data>`: Writes raw data to a sector on the disk.
+- `cable <filename>`: Opens a simple text editor.
+- `calc <expression>`: A simple calculator.
 
 ### Input Handling:
 The shell continuously reads character input from the keyboard. It supports:
@@ -191,37 +190,56 @@ The ATA (Advanced Technology Attachment) driver provides an interface for readin
 
 ## 10. Filesystem (BDFS)
 
-BrainDance OS includes a simple, custom-built filesystem called BDFS (BrainDance File System). It is designed to be easy to implement and understand, providing basic file operations like creation, deletion, reading, and writing.
+BrainDance OS includes a simple, in-memory filesystem called BDFS (BrainDance File System). It provides basic file operations like creation, deletion, reading, and writing.
 
-### 10.1. On-Disk Layout
+### 10.1. In-Memory Layout
 
-The BDFS has a straightforward on-disk structure:
-- **File Table:** A fixed-size table that stores metadata for all files. It starts at sector `BDFS_FILE_TABLE_SECTOR_START` (currently 129, to avoid overwriting the kernel) and occupies `BDFS_FILE_TABLE_SECTORS` (4).
+The BDFS resides entirely in a static memory buffer. The layout is as follows:
+- **File Table:** A fixed-size table that stores metadata for all files. It occupies the first `BDFS_FILE_TABLE_SECTORS` * 512 bytes of the storage buffer.
     - The first 4 bytes of the file table contain the magic number `0x42444653` ("BDFS") to identify the filesystem.
-- **Data Region:** The rest of the disk, starting at `BDFS_DATA_SECTOR_START`, is used for storing file data.
+- **Data Region:** The rest of the storage buffer is used for storing file data.
 
 ### 10.2. File Entry (`bdfs_file_entry_t`)
 
 Each entry in the file table is a `bdfs_file_entry_t` structure, which contains:
 - `name`: The filename (up to 16 characters).
-- `start_sector`: The starting LBA of the file's data. A value of `(uint32_t)-1` indicates that no sectors have been allocated yet.
+- `start_sector`: The starting sector of the file's data within the data region.
 - `length`: The length of the file in bytes.
 
 ### 10.3. Filesystem Operations (`fs/bdfs.c`, `include/bdfs.h`)
 
-- `bdfs_init()`: Initializes the filesystem. It checks for the BDFS magic number. If it's not found, it creates a new, empty filesystem by formatting the file table. Otherwise, it loads the existing file table from disk.
+- `bdfs_init()`: Initializes the filesystem. It checks for the BDFS magic number in the storage buffer. If it's not found, it creates a new, empty filesystem. Otherwise, it loads the existing file table.
 - `bdfs_create_file(filename)`: Creates a new, empty file with the given name.
-- `bdfs_delete_file(filename)`: Deletes a file by clearing its entry in the file table. Note that the data blocks are not overwritten, only marked as available.
+- `bdfs_delete_file(filename)`: Deletes a file by clearing its entry in the file table.
 - `bdfs_read_file(filename, buffer, ...)`: Reads the entire content of a file into the provided buffer.
-- `bdfs_write_file(filename, buffer, ...)`: Writes data to a file. If the file is new, it allocates a contiguous block of sectors. If the file exists, it overwrites the existing data. BDFS does not support growing files; you must write the entire file content at once.
+- `bdfs_write_file(filename, buffer, ...)`: Writes data to a file.
 - `bdfs_list_files()`: Lists all files in the filesystem.
-- `bdfs_stat_file(filename, entry)`: Retrieves metadata (the file entry) for a given file.
 
-## 11. System Layout
+## 11. Applications
 
-This section provides a map of how BrainDance OS is laid out in memory and on the disk.
+BrainDance OS includes a few simple applications.
 
-### 11.1. Memory Layout
+### 11.1. Cable Text Editor
+
+`cable` is a simple, screen-oriented text editor. It provides basic text editing functionality, including:
+-   Creating and opening files.
+-   Editing text using the keyboard.
+-   Saving files using a `write` syscall.
+-   Navigating with the arrow keys.
+
+### 11.2. Calculator
+
+`calc` is a simple command-line calculator that can evaluate mathematical expressions.
+
+## 12. BDX Executable Format
+
+BrainDance OS uses a custom executable format called BDX. BDX files are simple bytecode programs that can be executed by the `execute_bdx` function. The BDX interpreter supports a small set of opcodes for basic operations like printing to the screen and exiting.
+
+## 13. System Layout
+
+This section provides a map of how BrainDance OS is laid out in memory.
+
+### 13.1. Memory Layout
 
 | **Memory Location** | **Component** | **Description** |
 | ------------------- | ------------- | --------------- |
@@ -230,11 +248,9 @@ This section provides a map of how BrainDance OS is laid out in memory and on th
 | `0x100000` (1MB) | Kernel | The final location of the kernel code, data, and BSS, as defined by the linker script. |
 | `0x400000` (4MB) | Kernel Heap | The start of the kernel's dynamic memory allocation area. |
 
-### 11.2. Disk Sector Layout
+### 13.2. Disk Sector Layout
 
 | **Sector(s)** | **Component** | **Description** |
 | ------------- | ------------- | --------------- |
 | 0 | Bootloader | The Master Boot Record (MBR). |
 | 1 - 128 | Kernel | The kernel binary, loaded by the bootloader. |
-| 129 - 132 | BDFS File Table | The metadata for the BrainDance File System. |
-| 133+ | BDFS Data | The region where file content is stored. |
