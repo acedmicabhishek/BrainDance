@@ -22,13 +22,20 @@ start:
     int 0x13          ; Call BIOS disk services
     jc halt           ; If carry flag is set, halt
 
-        ; --- Get VESA Framebuffer Address ---
-        mov ax, 0x4F01
-        mov cx, 0x11A
-        mov di, vbe_mode_info
-        int 0x10
-        mov eax, [vbe_mode_info + 40]
-        mov [0x904], eax
+    ; --- Set VESA graphics mode ---
+    mov ax, 0x4F02
+    mov bx, 0x118 | 0x4000   ; VESA mode | linear framebuffer bit
+    int 0x10                 ; BIOS video service
+
+    ; --- Get VESA mode info ---
+    mov ax, 0x4F01
+    mov cx, 0x118
+    mov di, 0x8000
+    int 0x10
+
+    ; --- Store framebuffer address ---
+    mov eax, [0x8000 + 40]
+    mov [0x904], eax
     
     ; --- Read E820 Memory Map ---
     xor ebx, ebx      ; Start with EBX = 0

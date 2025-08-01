@@ -26,12 +26,15 @@ void kernel_main() {
     // Read memory map info from the bootloader-populated addresses
     uint32_t mmap_entries = *(uint32_t*)0x900;
     uint32_t mmap_addr = 0x1000;
+    uint32_t vesa_framebuffer = *(uint32_t*)0x904;
+
     // Initialize the PMM
     pmm_init(mmap_addr, mmap_entries);
 
-    // Set graphics mode to VGA
-    set_graphics_mode(VGA_MODE);
-    clear_screen(0x07);
+    // Set graphics mode to VESA
+    set_graphics_mode(VESA_MODE);
+    vesa_init(vesa_framebuffer, 1024, 768, 1024 * 4);
+    vesa_clear_screen(0x000000);
     print("BrainDance Kernel Loaded.\n\n", 0x04);
 
     // Print memory diagnostics

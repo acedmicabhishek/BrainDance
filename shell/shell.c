@@ -40,8 +40,6 @@ void help_command() {
     print("  cd       - Change directory\n", COLOR_SYSTEM);
     print("  sysinfo  - Display system information\n", COLOR_SYSTEM);
     print("  calc     - Evaluate a mathematical expression\n", COLOR_SYSTEM);
-    print("  startx   - Switch to VESA graphics mode\n", COLOR_SYSTEM);
-    print("  vesaoff  - Switch back to VGA text mode\n", COLOR_SYSTEM);
 }
 
 void sysinfo_command() {
@@ -296,26 +294,6 @@ void process_command(const char* command) {
        } else {
            print("Usage: cd <dirname>\n", COLOR_ERROR);
        }
-    } else if (strcmp(token, "startx") == 0) {
-       vesa_set_mode(0x118); // 1024x768x32bpp
-       uint32_t vesa_framebuffer = *(uint32_t*)0x904;
-       vesa_init(vesa_framebuffer, 1024, 768, 1024 * 4);
-       set_graphics_mode(VESA_MODE);
-       vesa_clear_screen(0x000000);
-       print("entering graphical shell...\n", COLOR_SYSTEM);
-       // Re-render the shell
-       command_len = 0;
-       memset(command_buffer, 0, MAX_COMMAND_LENGTH);
-       print_prompt();
-   } else if (strcmp(token, "vesaoff") == 0) {
-       vesa_set_mode(0x03); // 80x25 text mode
-       set_graphics_mode(VGA_MODE);
-       clear_screen(0x07);
-       print("exiting graphical shell...\n", COLOR_SYSTEM);
-       // Re-render the shell
-       command_len = 0;
-       memset(command_buffer, 0, MAX_COMMAND_LENGTH);
-       print_prompt();
     } else if (strcmp(token, "calc") == 0) {
        char* expression = strtok(NULL, "");
        if (expression) {
