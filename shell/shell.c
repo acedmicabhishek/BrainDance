@@ -9,6 +9,7 @@
 #include "include/cable.h"
 #include "include/exec.h"
 #include "include/calculator.h"
+#include "include/graphics.h"
 
 #define PROMPT "BD> "
 #define MAX_COMMAND_LENGTH 256
@@ -36,6 +37,8 @@ void help_command() {
     print("  cd       - Change directory\n", COLOR_SYSTEM);
     print("  sysinfo  - Display system information\n", COLOR_SYSTEM);
     print("  calc     - Evaluate a mathematical expression\n", COLOR_SYSTEM);
+    print("  vgax     - Switch to VGA graphics mode\n", COLOR_SYSTEM);
+    print("  vgaoff   - Switch back to text mode\n", COLOR_SYSTEM);
 }
 
 void sysinfo_command() {
@@ -297,6 +300,10 @@ void process_command(const char* command) {
        } else {
            print("Usage: calc <expression>\n", COLOR_ERROR);
        }
+   } else if (strcmp(token, "vgax") == 0) {
+       startx_vga();
+   } else if (strcmp(token, "vgaoff") == 0) {
+       stopx_vga();
    } else if (strlen(command) > 0) {
        if (ends_with(command, ".bdx")) {
            if (execute_bdx(command) != 0) {

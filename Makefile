@@ -37,6 +37,12 @@ arch/i386/irq_asm.o: arch/i386/irq.asm
 arch/i386/load_idt.o: arch/i386/load_idt.asm
 	nasm -f elf32 arch/i386/load_idt.asm -o arch/i386/load_idt.o
 
+arch/i386/vga_trampoline.o: arch/i386/vga_trampoline.asm
+	nasm -f elf32 arch/i386/vga_trampoline.asm -o arch/i386/vga_trampoline.o
+
+arch/i386/vga_trampoline_off.o: arch/i386/vga_trampoline_off.asm
+	nasm -f elf32 arch/i386/vga_trampoline_off.asm -o arch/i386/vga_trampoline_off.o
+
 arch/i386/pic.o: arch/i386/pic.c include/pic.h include/ports.h
 	i686-elf-gcc $(CFLAGS) -c arch/i386/pic.c -o arch/i386/pic.o
 
@@ -48,6 +54,9 @@ arch/i386/timer.o: arch/i386/timer.c include/timer.h include/irq.h include/ports
 
 drivers/keyboard_driver.o: drivers/keyboard_driver.c include/keyboard.h include/ports.h include/irq.h include/memcore.h
 	i686-elf-gcc $(CFLAGS) -c drivers/keyboard_driver.c -o drivers/keyboard_driver.o
+
+drivers/video/graphics.o: drivers/video/graphics.c include/graphics.h
+	i686-elf-gcc $(CFLAGS) -c drivers/video/graphics.c -o drivers/video/graphics.o
 
 # Compile ATA driver
 drivers/ata/ata.o: drivers/ata/ata.c include/ata.h include/ports.h
@@ -77,8 +86,8 @@ kernel/BDkernel.o: kernel/BDkernel.c include/memcore.h include/idt.h include/isr
 	i686-elf-gcc $(CFLAGS) -c kernel/BDkernel.c -o kernel/BDkernel.o
 
 # Link kernel
-BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o kernel/linker.ld
-	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o
+BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/video/graphics.o drivers/ata/ata.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o arch/i386/vga_trampoline.o arch/i386/vga_trampoline_off.o kernel/linker.ld
+	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/video/graphics.o drivers/ata/ata.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o arch/i386/vga_trampoline.o arch/i386/vga_trampoline_off.o
 	objcopy -O binary BDkernel.elf BDkernel.bin
 
 # Create bootable image
@@ -93,4 +102,4 @@ run: bdos.img
 
 # Clean build files
 clean:
-	rm -f *.bin *.o *.elf bdos.img boot/*.bin kernel/*.o kernel/*.elf libc/*.o arch/i386/*.o drivers/*.o drivers/ata/*.o fs/*.o app/utils/*.o exec/*.o
+	rm -f *.bin *.o *.elf bdos.img boot/*.bin kernel/*.o kernel/*.elf libc/*.o arch/i386/*.o drivers/*.o drivers/video/*.o drivers/ata/*.o fs/*.o app/utils/*.o exec/*.o memory/*.o

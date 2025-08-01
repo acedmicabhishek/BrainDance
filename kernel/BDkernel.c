@@ -15,6 +15,7 @@ extern char _stack_end;
 #include "include/heap.h"
 #include "include/bdfs.h"
 #include "include/ata.h"
+#include "include/graphics.h"
 
 // Define the RAM disk base address
 #define RAMDISK_BASE 0x200000
