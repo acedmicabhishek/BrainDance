@@ -16,9 +16,21 @@ unsigned char kbd_us[128] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
+
+unsigned char kbd_us_shift[128] = {
+    0,  27, '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '\b', '\t',
+    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '\n', 0, 'A', 'S',
+    'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', '~', 0, '|', 'Z', 'X', 'C', 'V',
+    'B', 'N', 'M', '<', '>', '?', 0, '*', 0, ' ', 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
 char last_char = 0;
 static unsigned char last_scancode = 0;
 int ctrl_pressed = 0;
+static int shift_pressed = 0;
 
 void keyboard_handler(struct regs *r) {
     unsigned char scancode;
@@ -31,18 +43,25 @@ void keyboard_handler(struct regs *r) {
     if (scancode & 0x80) {
         if (scancode == 0x9D) { // Ctrl release
             ctrl_pressed = 0;
+        } else if (scancode == 0xAA || scancode == 0xB6) { // Shift release
+            shift_pressed = 0;
         }
     } else {
         // Key pressed
         if (scancode == 0x1D) { // Ctrl press
             ctrl_pressed = 1;
+        } else if (scancode == 0x2A || scancode == 0x36) { // Shift press
+            shift_pressed = 1;
         } else if (scancode < 128) {
             if (ctrl_pressed) {
                 // Send a special code for Ctrl + key
                 last_char = 0; // Don't send a normal character
             } else {
-                char c = kbd_us[scancode];
-                last_char = c; // Store the character for keyboard_get_char()
+                if (shift_pressed) {
+                    last_char = kbd_us_shift[scancode];
+                } else {
+                    last_char = kbd_us[scancode];
+                }
             }
         }
     }

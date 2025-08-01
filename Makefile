@@ -9,6 +9,9 @@ BDbootloader.bin: boot/BDbootloader.asm
 libc/memcore.o: libc/memcore.c include/memcore.h
 	i686-elf-gcc $(CFLAGS) -c libc/memcore.c -o libc/memcore.o
 
+libc/mathlib.o: libc/mathlib.c include/mathlib.h
+	i686-elf-gcc $(CFLAGS) -c libc/mathlib.c -o libc/mathlib.o
+
 # Compile PMM
 memory/pmm.o: memory/pmm.c include/pmm.h
 	i686-elf-gcc $(CFLAGS) -c memory/pmm.c -o memory/pmm.o
@@ -53,6 +56,10 @@ drivers/keyboard_driver.o: drivers/keyboard_driver.c include/keyboard.h include/
 drivers/ata/ata.o: drivers/ata/ata.c include/ata.h include/ports.h
 	i686-elf-gcc $(CFLAGS) -c drivers/ata/ata.c -o drivers/ata/ata.o
 
+# Compile VESA driver
+drivers/video/vesa.o: drivers/video/vesa.c include/vesa.h
+	i686-elf-gcc $(CFLAGS) -c drivers/video/vesa.c -o drivers/video/vesa.o
+
 # Compile Shell
 shell/shell.o: shell/shell.c include/shell.h
 	i686-elf-gcc $(CFLAGS) -c shell/shell.c -o shell/shell.o
@@ -64,6 +71,8 @@ fs/bdfs.o: fs/bdfs.c include/bdfs.h
 # Compile apps
 app/utils/cable.o: app/utils/cable.c include/cable.h
 	i686-elf-gcc $(CFLAGS) -c app/utils/cable.c -o app/utils/cable.o
+app/utils/calculator.o: app/utils/calculator.c include/calculator.h
+	i686-elf-gcc $(CFLAGS) -c app/utils/calculator.c -o app/utils/calculator.o
 
 # Compile exec
 exec/exec.o: exec/exec.c include/exec.h
@@ -74,8 +83,8 @@ kernel/BDkernel.o: kernel/BDkernel.c include/memcore.h include/idt.h include/isr
 	i686-elf-gcc $(CFLAGS) -c kernel/BDkernel.c -o kernel/BDkernel.o
 
 # Link kernel
-BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o shell/shell.o fs/bdfs.o app/utils/cable.o exec/exec.o kernel/linker.ld
-	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o shell/shell.o fs/bdfs.o app/utils/cable.o exec/exec.o
+BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o drivers/video/vesa.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o kernel/linker.ld
+	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o libc/mathlib.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o drivers/video/vesa.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o
 	objcopy -O binary BDkernel.elf BDkernel.bin
 
 # Create bootable image
@@ -90,4 +99,4 @@ run: bdos.img
 
 # Clean build files
 clean:
-	rm -f *.bin *.o *.elf bdos.img boot/*.bin kernel/*.o kernel/*.elf libc/*.o arch/i386/*.o drivers/*.o drivers/ata/*.o fs/*.o app/utils/*.o exec/*.o
+	rm -f *.bin *.o *.elf bdos.img boot/*.bin kernel/*.o kernel/*.elf libc/*.o arch/i386/*.o drivers/*.o drivers/ata/*.o drivers/video/*.o fs/*.o app/utils/*.o exec/*.o libc/*.o

@@ -41,6 +41,11 @@ read_map:
     int 0x15          ; Call BIOS services
     jc halt           ; If carry flag is set, A20 enable failed
 
+    ; --- Set VESA Video Mode ---
+    mov ax, 0x4F02      ; Set Video Mode
+    mov bx, 0x11A | 0x4000 ; 1920x1080x16bpp with linear framebuffer
+    int 0x10
+
     ; --- Load Global Descriptor Table (GDT) ---
     cli             ; Disable interrupts before loading GDT
     lgdt [gdt_descriptor] ; Load the GDT descriptor

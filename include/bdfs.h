@@ -33,6 +33,7 @@ int bdfs_create_file(const char* filename);
 int bdfs_delete_file(const char* filename);
 int bdfs_rename_file(const char* old_filename, const char* new_filename);
 void bdfs_list_files();
+void bdfs_list_files_at(const char* path);
 int bdfs_read_file(const char* filename, uint8_t* buffer, uint32_t* bytes_read);
 int bdfs_write_file(const char* filename, const uint8_t* buffer, uint32_t bytes_to_write);
 

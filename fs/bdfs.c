@@ -170,6 +170,27 @@ void bdfs_list_files() {
     }
 }
 
+void bdfs_list_files_at(const char* path) {
+    // For now, we only support listing the root directory
+    if (strcmp(path, "/soul") == 0) {
+        for (int i = 0; i < BDFS_MAX_FILES; i++) {
+            if (file_table[i].name[0] != '\0' && file_table[i].parent_inode == 1) { // soul is inode 1
+                if (file_table[i].type == BDFS_FILE_TYPE_DIRECTORY) {
+                    print("d ", COLOR_DIR);
+                    print(file_table[i].name, COLOR_DIR);
+                    print("\n", COLOR_DIR);
+                } else {
+                    print("- ", COLOR_FILE);
+                    print(file_table[i].name, COLOR_FILE);
+                    print(" (", COLOR_GHOST);
+                    print_int(file_table[i].length, COLOR_GHOST);
+                    print(" bytes)\n", COLOR_GHOST);
+                }
+            }
+        }
+    }
+}
+
 int bdfs_chdir(const char* dirname) {
     if (strcmp(dirname, ".") == 0) {
         return 0; // Stay in the same directory

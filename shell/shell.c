@@ -8,6 +8,8 @@
 #include "include/colors.h"
 #include "include/cable.h"
 #include "include/exec.h"
+#include "include/calculator.h"
+#include "include/vesa.h"
 
 #define PROMPT "BD> "
 #define MAX_COMMAND_LENGTH 256
@@ -37,13 +39,24 @@ void help_command() {
     print("  ataread  - Read a sector from the ATA drive\n", COLOR_SYSTEM);
     print("  atawrite - Write a sector to the ATA drive\n", COLOR_SYSTEM);
     print("  sysinfo  - Display system information\n", COLOR_SYSTEM);
-   }
+    print("  calc     - Perform a calculation\n", COLOR_SYSTEM);
+    print("  apps     - List installed applications\n", COLOR_SYSTEM);
+    print("  test2d   - Draw a test triangle on the screen\n", COLOR_SYSTEM);
+}
+
+void apps_command() {
+    print("Installed applications:\n", COLOR_SYSTEM);
+    print("  calc - A simple calculator\n", COLOR_SYSTEM);
+    print("  cable - A simple text editor\n", COLOR_SYSTEM);
+    print("\nApplications in /soul:\n", COLOR_SYSTEM);
+    bdfs_list_files_at("/soul");
+}
 
 void sysinfo_command() {
     extern uint32_t _bss_start[], _kernel_end[];
     uint32_t kernel_size = (uint32_t)_kernel_end - (uint32_t)_bss_start;
 
-    print("[sysinfo] brainDance v0.3\n", COLOR_SYSTEM);
+    print("[sysinfo] brainDance v1.0\n", COLOR_SYSTEM);
     kprintf("[sysinfo] Kernel Size: %d KB\n", kernel_size / 1024);
     kprintf("[sysinfo] Total RAM: %d MB\n", pmm_get_total_memory() / 1024 / 1024);
     kprintf("[sysinfo] Free RAM: %d MB\n", pmm_get_free_memory() / 1024 / 1024);
@@ -113,7 +126,7 @@ void atawrite_command(const char* lba_str, const char* data) {
    
    void touch_command(const char* filename) {
        if (bdfs_create_file(filename) == 0) {
-           print("✔ File '", COLOR_SUCCESS);
+           print("File '", COLOR_SUCCESS);
            print(filename, COLOR_SUCCESS);
            print("' created.\n", COLOR_SUCCESS);
        } else {
@@ -233,7 +246,7 @@ void atawrite_command(const char* lba_str, const char* data) {
            ata_write_sector(BDFS_FILE_TABLE_SECTOR_START + i, buffer + (i * 512));
        }
        bdfs_init();
-       print("✔ Filesystem formatted.\n", COLOR_SUCCESS);
+       print("Filesystem formatted.\n", COLOR_SUCCESS);
    }
    
    void clear_command() {
@@ -271,6 +284,13 @@ void echo_command(const char* text) {
     }
 }
 
+void test2d_command() {
+    uint16_t width = vesa_get_width();
+    uint16_t height = vesa_get_height();
+    uint16_t red = rgb565(255, 0, 0);
+    vesa_draw_triangle(width / 2, height / 4, width / 4, height * 3 / 4, width * 3 / 4, height * 3 / 4, red);
+}
+
 // Function to process a command
 void process_command(const char* command) {
     char cmd[MAX_COMMAND_LENGTH];
@@ -290,6 +310,8 @@ void process_command(const char* command) {
         halt_command();
     } else if (strcmp(token, "sysinfo") == 0) {
         sysinfo_command();
+    } else if (strcmp(token, "apps") == 0) {
+        apps_command();
     } else if (strcmp(token, "ls") == 0) {
         ls_command();
     } else if (strcmp(token, "touch") == 0) {
@@ -306,6 +328,13 @@ void process_command(const char* command) {
             write_command(filename, data);
         } else {
             print("Usage: write <filename> <data>\n", COLOR_ERROR);
+        }
+    } else if (strcmp(token, "calc") == 0) {
+        char* expression = strtok(NULL, "");
+        if (expression) {
+            calculator_main(expression);
+        } else {
+            print("Usage: calc <expression>\n", COLOR_ERROR);
         }
     } else if (strcmp(token, "echo") == 0) {
         char* text = strtok(NULL, "");
@@ -363,7 +392,9 @@ void process_command(const char* command) {
        char* lba_str = strtok(NULL, " ");
        char* data = strtok(NULL, "");
        atawrite_command(lba_str, data);
-    } else if (strlen(command) > 0) {
+   } else if (strcmp(token, "test2d") == 0) {
+       test2d_command();
+   } else if (strlen(command) > 0) {
        if (ends_with(command, ".bdx")) {
            if (execute_bdx(command) != 0) {
                print("Error executing ", COLOR_ERROR);
