@@ -4,11 +4,21 @@
 *.elf
 *.img
 *.padded
+bdos.img
+BDkernel.elf
+BDkernel.bin
+BDbootloader.bin
 
 # Object files in subdirectories
 kernel/*.o
 libc/*.o
-arch/i3t86/*.o
+arch/i386/*.o
+memory/*.o
+drivers/*.o
+drivers/ata/*.o
+fs/*.o
+app/utils/*.o
+exec/*.o
 
 # Other temporary files
 bdos.tmp
