@@ -4,8 +4,23 @@
 #include "include/colors.h"
 #include "include/types.h"
 #include "include/keyboard.h"
+#include "include/exec.h"
 
 static editor_state_t editor;
+
+void syscall_write(const char* path, const uint8_t* buffer, uint32_t len) {
+    uint8_t bytecode[1024];
+    int ip = 0;
+    bytecode[ip++] = OPCODE_SYSCALL_WRITE;
+    strcpy((char*)&bytecode[ip], path);
+    ip += strlen(path) + 1;
+    *(uint32_t*)&bytecode[ip] = len;
+    ip += sizeof(uint32_t);
+    memcpy(&bytecode[ip], buffer, len);
+    ip += len;
+    bytecode[ip++] = OPCODE_EXIT;
+    interpret_bdx(bytecode);
+}
 
 void editor_init(const char* filename) {
     editor.cx = 0;
@@ -28,6 +43,8 @@ void editor_init(const char* filename) {
                 editor.buffer[row][col++] = file_content[i];
             }
         }
+        editor.cx = col;
+        editor.cy = row;
     }
 }
 
@@ -58,6 +75,7 @@ void editor_draw() {
 
 void editor_insert_char(char c) {
     if (editor.cx < EDITOR_COLS - 1) {
+        memmove(&editor.buffer[editor.cy][editor.cx + 1], &editor.buffer[editor.cy][editor.cx], strlen(editor.buffer[editor.cy]) - editor.cx);
         editor.buffer[editor.cy][editor.cx] = c;
         editor.cx++;
         editor.dirty = 1;
@@ -67,52 +85,90 @@ void editor_insert_char(char c) {
 void editor_delete_char() {
     if (editor.cx > 0) {
         editor.cx--;
-        editor.buffer[editor.cy][editor.cx] = '\0';
+        memmove(&editor.buffer[editor.cy][editor.cx], &editor.buffer[editor.cy][editor.cx + 1], strlen(editor.buffer[editor.cy]) - editor.cx);
         editor.dirty = 1;
+    } else if (editor.cy > 0) {
+        int prev_line_len = strlen(editor.buffer[editor.cy - 1]);
+        if (prev_line_len + strlen(editor.buffer[editor.cy]) < EDITOR_COLS - 1) {
+            strcat(editor.buffer[editor.cy - 1], editor.buffer[editor.cy]);
+            memmove(&editor.buffer[editor.cy], &editor.buffer[editor.cy + 1], (EDITOR_ROWS - editor.cy - 1) * EDITOR_COLS);
+            editor.cy--;
+            editor.cx = prev_line_len;
+            editor.dirty = 1;
+        }
     }
 }
 
 void editor_save_file() {
     uint32_t len = 0;
+    uint8_t save_buffer[EDITOR_ROWS * EDITOR_COLS];
     for (int y = 0; y < EDITOR_ROWS; y++) {
-        len += strlen(editor.buffer[y]);
+        int row_len = strlen(editor.buffer[y]);
+        if (row_len > 0) {
+            memcpy(save_buffer + len, editor.buffer[y], row_len);
+            len += row_len;
+            if (y < EDITOR_ROWS - 1) {
+                save_buffer[len] = '\n';
+                len++;
+            }
+        }
     }
 
-    if (bdfs_write_file(editor.filename, (uint8_t*)editor.buffer, len) > 0) {
-        editor.dirty = 0;
-    }
+    syscall_write(editor.filename, save_buffer, len);
+    editor.dirty = 0;
 }
 
 int editor_process_keypress() {
     unsigned char scancode = keyboard_get_scancode();
 
-    // Ctrl+S to save
-    if (scancode == 0x1F && ctrl_pressed) {
-        editor_save_file();
-        return 1; // Continue running
-    }
-    
-    // Ctrl+Q to quit
-    if (scancode == 0x10 && ctrl_pressed) {
-        // For now, we just exit. A real implementation would check for unsaved changes.
-        return 0; // Signal to quit
-    }
+    if (scancode) {
+        // Ctrl+S to save
+        if (scancode == 0x1F && ctrl_pressed) {
+            editor_save_file();
+            return 1; // Continue running
+        }
+        
+        // Ctrl+Q to quit
+        if (scancode == 0x10 && ctrl_pressed) {
+            // For now, we just exit. A real implementation would check for unsaved changes.
+            return 0; // Signal to quit
+        }
 
-    char c = kbd_us[scancode];
-    if (c) {
-        switch (c) {
-            case '\n':
-                editor.cy++;
-                editor.cx = 0;
-                break;
-            case '\b':
-                editor_delete_char();
-                break;
-            default:
-                if (c >= 32 && c <= 126) {
-                    editor_insert_char(c);
-                }
-                break;
+
+        // Arrow keys for navigation
+        if (scancode == 0x48) { // Up arrow
+            if (editor.cy > 0) editor.cy--;
+            return 1;
+        }
+        if (scancode == 0x50) { // Down arrow
+            if (editor.cy < EDITOR_ROWS - 2) editor.cy++;
+            return 1;
+        }
+        if (scancode == 0x4B) { // Left arrow
+            if (editor.cx > 0) editor.cx--;
+            return 1;
+        }
+        if (scancode == 0x4D) { // Right arrow
+            if (editor.cx < strlen(editor.buffer[editor.cy])) editor.cx++;
+            return 1;
+        }
+
+        char c = kbd_us[scancode];
+        if (c) {
+            switch (c) {
+                case '\n':
+                    editor.cy++;
+                    editor.cx = 0;
+                    break;
+                case '\b':
+                    editor_delete_char();
+                    break;
+                default:
+                    if (c >= 32 && c <= 126) {
+                        editor_insert_char(c);
+                    }
+                    break;
+            }
         }
     }
     return 1; // Continue running

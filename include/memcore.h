@@ -6,10 +6,12 @@
 #include "include/types.h"
 
 void* memcpy(void* dest, const void* src, unsigned int count);
+void* memmove(void* dest, const void* src, unsigned int count);
 void* memset(void* dest, int value, unsigned int count);
 int strlen(const char* str);
 int strcmp(const char* str1, const char* str2);
 char* strcpy(char* dest, const char* src);
+char* strcat(char* dest, const char* src);
 char* strncpy(char* dest, const char* src, unsigned int n);
 int strncmp(const char* str1, const char* str2, size_t n);
 char* strtok(char* str, const char* delimiters);

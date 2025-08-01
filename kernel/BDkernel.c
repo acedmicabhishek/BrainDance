@@ -18,7 +18,6 @@ extern char _stack_end;
 
 // Define the RAM disk base address
 #define RAMDISK_BASE 0x200000
-
 void kernel_main() {
     // Read memory map info from the bootloader-populated addresses
     uint32_t mmap_entries = *(uint32_t*)0x900;
@@ -55,14 +54,14 @@ void kernel_main() {
     // Heap is initialized by global heap_ptr in memory/heap.c
     print("INFO: Kernel Heap initialized\n", 0x02);
 
-    void* test1 = kmalloc(16);
-    void* test2 = kmalloc(32);
-    void* test3 = kmalloc(8);
+    // void* test1 = kmalloc(16);
+    // void* test2 = kmalloc(32);
+    // void* test3 = kmalloc(8);
 
-    kprintf("Heap allocations:\n");
-    kprintf("  test1 = %x\n", test1);
-    kprintf("  test2 = %x\n", test2);
-    kprintf("  test3 = %x\n", test3);
+    // kprintf("Heap allocations:\n");
+    // kprintf("  test1 = %x\n", test1);
+    // kprintf("  test2 = %x\n", test2);
+    // kprintf("  test3 = %x\n", test3);
 
 
     // Initialize timer

@@ -1,7 +1,13 @@
 #include "include/bdfs.h"
-#include "include/ata.h"
 #include "include/memcore.h"
 #include "include/colors.h"
+
+// In-memory storage for BDFS. The layout is:
+// - First BDFS_FILE_TABLE_SECTORS * 512 bytes: File table (with magic number)
+// - The rest: File data
+#define BDFS_DATA_SECTORS 64 // Space for file content
+#define BDFS_TOTAL_SECTORS (BDFS_FILE_TABLE_SECTORS + BDFS_DATA_SECTORS)
+static uint8_t bdfs_storage[BDFS_TOTAL_SECTORS * 512];
 
 static bdfs_file_entry_t file_table[BDFS_MAX_FILES];
 static uint32_t current_dir_inode = 0; // Root directory is inode 0
@@ -44,12 +50,11 @@ static int bdfs_create_dir_entry(const char* dirname, uint32_t parent_inode) {
 }
 
 void bdfs_init() {
-    uint8_t buffer[BDFS_FILE_TABLE_SECTORS * 512];
-    
-    ata_read_sector(BDFS_FILE_TABLE_SECTOR_START, buffer);
+    // The "disk" is now in memory. Let's check the magic number.
+    uint32_t* magic_ptr = (uint32_t*)bdfs_storage;
 
-    if (*(uint32_t*)buffer != BDFS_MAGIC) {
-        kprintf("BDFS: No filesystem found, creating a new one.\n");
+    if (*magic_ptr != BDFS_MAGIC) {
+        kprintf("BDFS: No filesystem found, creating a new one in RAM.\n");
         memset(file_table, 0, sizeof(file_table));
         
         // Create root directory at inode 0
@@ -70,24 +75,22 @@ void bdfs_init() {
             bdfs_create_dir_entry("cypher", vault_inode);
         }
 
-        bdfs_sync_file_table();
+        bdfs_sync_file_table(); // "Save" to RAM disk
     } else {
-        for (int i = 1; i < BDFS_FILE_TABLE_SECTORS; i++) {
-            ata_read_sector(BDFS_FILE_TABLE_SECTOR_START + i, buffer + (i * 512));
-        }
-        memcpy(file_table, buffer + sizeof(uint32_t), sizeof(file_table));
+        // Filesystem exists in RAM, load it
+        memcpy(file_table, bdfs_storage + sizeof(uint32_t), sizeof(file_table));
     }
     current_dir_inode = 0; // Start at the root
 }
 
 void bdfs_sync_file_table() {
-    uint8_t buffer[BDFS_FILE_TABLE_SECTORS * 512];
-    memset(buffer, 0, sizeof(buffer));
-    *(uint32_t*)buffer = BDFS_MAGIC;
-    memcpy(buffer + sizeof(uint32_t), file_table, sizeof(file_table));
-    for (int i = 0; i < BDFS_FILE_TABLE_SECTORS; i++) {
-        ata_write_sector(BDFS_FILE_TABLE_SECTOR_START + i, buffer + (i * 512));
-    }
+    // "Sync" means writing the file table to our in-memory storage.
+    // The file table is stored at the beginning of our bdfs_storage.
+    uint8_t* file_table_ptr = bdfs_storage;
+    
+    memset(file_table_ptr, 0, BDFS_FILE_TABLE_SECTORS * 512);
+    *(uint32_t*)file_table_ptr = BDFS_MAGIC;
+    memcpy(file_table_ptr + sizeof(uint32_t), file_table, sizeof(file_table));
 }
 
 int bdfs_create_file(const char* filename) {
@@ -199,7 +202,7 @@ void bdfs_get_current_dir_name(char* buffer) {
 }
 
 static uint32_t find_free_sector() {
-    uint32_t last_sector = BDFS_DATA_SECTOR_START;
+    uint32_t last_sector = 0; // Start from 0 for in-memory model
     for (int i = 0; i < BDFS_MAX_FILES; i++) {
         if (file_table[i].name[0] != '\0' && file_table[i].type == BDFS_FILE_TYPE_FILE) {
             uint32_t file_end_sector = file_table[i].start_sector + (file_table[i].length + 511) / 512;
@@ -216,28 +219,32 @@ int bdfs_write_file(const char* filename, const uint8_t* buffer, uint32_t bytes_
     if (file_index == -1) return -1;
 
     bdfs_file_entry_t* file = &file_table[file_index];
-    if (file->type != BDFS_FILE_TYPE_FILE) return -3; // Cannot write to a directory
+    if (file->type != BDFS_FILE_TYPE_FILE) return -3;
 
     uint32_t start_sector;
+    uint32_t needed_sectors = (bytes_to_write + 511) / 512;
 
     if (file->length == 0) {
         start_sector = find_free_sector();
+        // Check if there is enough space in our RAM disk for the new file.
+        if (start_sector + needed_sectors > BDFS_DATA_SECTORS) {
+            return -2; // Not enough space
+        }
         file->start_sector = start_sector;
     } else {
         start_sector = file->start_sector;
         uint32_t allocated_sectors = (file->length + 511) / 512;
-        uint32_t needed_sectors = (bytes_to_write + 511) / 512;
         if (needed_sectors > allocated_sectors) {
-            return -2; // Not enough space
+            // This simple FS does not support reallocating/growing files.
+            return -2;
         }
     }
 
     file->length = bytes_to_write;
 
-    uint32_t sectors_to_write = (bytes_to_write + 511) / 512;
-    for (uint32_t i = 0; i < sectors_to_write; i++) {
-        ata_write_sector(start_sector + i, buffer + (i * 512));
-    }
+    // Write data to our in-memory storage.
+    uint32_t offset = start_sector * 512;
+    memcpy(&bdfs_storage[BDFS_FILE_TABLE_SECTORS * 512 + offset], buffer, bytes_to_write);
 
     bdfs_sync_file_table();
     return bytes_to_write;
@@ -249,13 +256,12 @@ int bdfs_read_file(const char* filename, uint8_t* buffer, uint32_t* bytes_read) 
 
     if (file_table[file_index].type != BDFS_FILE_TYPE_FILE) return -2; // Cannot read a directory
 
-    uint32_t start_sector = file_table[file_index].start_sector;
-    uint32_t length = file_table[file_index].length;
-    *bytes_read = length;
+    bdfs_file_entry_t* file = &file_table[file_index];
+    *bytes_read = file->length;
 
-    uint32_t sectors_to_read = (length + 511) / 512;
-    for (uint32_t i = 0; i < sectors_to_read; i++) {
-        ata_read_sector(start_sector + i, buffer + (i * 512));
+    if (file->length > 0) {
+        uint32_t offset = (file->start_sector * 512);
+        memcpy(buffer, &bdfs_storage[BDFS_FILE_TABLE_SECTORS * 512 + offset], file->length);
     }
 
     return 0;
