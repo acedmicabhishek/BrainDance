@@ -34,12 +34,9 @@ void help_command() {
     print("  mv       - Rename a file\n", COLOR_SYSTEM);
     print("  mkdir    - Create a directory\n", COLOR_SYSTEM);
     print("  cd       - Change directory\n", COLOR_SYSTEM);
-    print("  format   - Format the filesystem\n", COLOR_SYSTEM);
-    print("  ataread  - Read a sector from the ATA drive\n", COLOR_SYSTEM);
-    print("  atawrite - Write a sector to the ATA drive\n", COLOR_SYSTEM);
     print("  sysinfo  - Display system information\n", COLOR_SYSTEM);
     print("  calc     - Evaluate a mathematical expression\n", COLOR_SYSTEM);
-   }
+}
 
 void sysinfo_command() {
     extern uint32_t _bss_start[], _kernel_end[];
@@ -64,50 +61,6 @@ int atoi(const char* str) {
     return res;
 }
 
-void ataread_command(const char* lba_str) {
-    if (!lba_str) {
-        print("Usage: ataread <lba>\n", COLOR_ERROR);
-        return;
-    }
-    uint32_t lba = atoi(lba_str);
-    char buffer[512];
-    if (ata_read_sector(lba, buffer) == 0) {
-        print("Successfully read sector ", COLOR_ATA_LOG);
-        print_int(lba, COLOR_ATA_LOG);
-        print(".\n", COLOR_ATA_LOG);
-        // Print buffer as hex
-        for(int i = 0; i < 512; i++) {
-            // This kprintf is fine, it's debug output
-            kprintf("%x ", (unsigned char)buffer[i]);
-        }
-        kprintf("\n");
-    } else {
-        print("Failed to read sector ", COLOR_ERROR);
-        print_int(lba, COLOR_ERROR);
-        print(".\n", COLOR_ERROR);
-    }
-}
-
-void atawrite_command(const char* lba_str, const char* data) {
-    if (!lba_str || !data) {
-        print("Usage: atawrite <lba> <data>\n", COLOR_ERROR);
-        return;
-    }
-    uint32_t lba = atoi(lba_str);
-    char buffer[512];
-    memset(buffer, 0, 512);
-    strncpy(buffer, data, 511);
-
-    if (ata_write_sector(lba, buffer) == 0) {
-        print("Successfully wrote to sector ", COLOR_ATA_LOG);
-        print_int(lba, COLOR_ATA_LOG);
-        print(".\n", COLOR_ATA_LOG);
-    } else {
-        print("Failed to write to sector ", COLOR_ERROR);
-        print_int(lba, COLOR_ERROR);
-        print(".\n", COLOR_ERROR);
-    }
-}
    
    void ls_command() {
        bdfs_list_files();
@@ -142,17 +95,8 @@ void atawrite_command(const char* lba_str, const char* data) {
        uint32_t bytes_read;
        memset(buffer, 0, 1024);
        if (bdfs_read_file(filename, buffer, &bytes_read) == 0) {
-           print("DEBUG: bytes_read = ", COLOR_WARNING);
-           print_int(bytes_read, COLOR_WARNING);
-           print("\n", COLOR_WARNING);
-           // Print hex and ASCII representation
            for (uint32_t i = 0; i < bytes_read; i++) {
-               kprintf("%02x ", buffer[i]); // Keep kprintf for hex formatting
-           }
-           kprintf("\n");
-           for (uint32_t i = 0; i < bytes_read; i++) {
-               char c = (buffer[i] >= 32 && buffer[i] <= 126) ? buffer[i] : '.';
-               print_char(c, COLOR_FILE);
+               print_char(buffer[i], COLOR_FILE);
            }
            kprintf("\n");
        } else {
@@ -227,16 +171,6 @@ void atawrite_command(const char* lba_str, const char* data) {
        }
    }
 
-   void format_command() {
-       uint8_t buffer[BDFS_FILE_TABLE_SECTORS * 512];
-       memset(buffer, 0, sizeof(buffer));
-       *(uint32_t*)buffer = BDFS_MAGIC;
-       for (int i = 0; i < BDFS_FILE_TABLE_SECTORS; i++) {
-           ata_write_sector(BDFS_FILE_TABLE_SECTOR_START + i, buffer + (i * 512));
-       }
-       bdfs_init();
-       print("✔ Filesystem formatted.\n", COLOR_SUCCESS);
-   }
    
    void clear_command() {
     clear_screen(0x07);
@@ -356,15 +290,6 @@ void process_command(const char* command) {
        } else {
            print("Usage: cd <dirname>\n", COLOR_ERROR);
        }
-   } else if (strcmp(token, "format") == 0) {
-       format_command();
-   } else if (strcmp(token, "ataread") == 0) {
-       token = strtok(NULL, " ");
-       ataread_command(token);
-   } else if (strcmp(token, "atawrite") == 0) {
-       char* lba_str = strtok(NULL, " ");
-       char* data = strtok(NULL, "");
-       atawrite_command(lba_str, data);
     } else if (strcmp(token, "calc") == 0) {
        char* expression = strtok(NULL, "");
        if (expression) {
@@ -406,11 +331,6 @@ void start_shell() {
         if (c == '\n') {
             command_buffer[command_len] = '\0'; // Null-terminate the command
             print("\n", COLOR_INPUT);
-            print("DEBUG: Command buffer: '", COLOR_WARNING);
-            print(command_buffer, COLOR_WARNING);
-            print("', length: ", COLOR_WARNING);
-            print_int(command_len, COLOR_WARNING);
-            print("\n", COLOR_WARNING);
             process_command(command_buffer);
             command_len = 0;
             memset(command_buffer, 0, MAX_COMMAND_LENGTH); // Clear buffer
