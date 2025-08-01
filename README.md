@@ -34,62 +34,91 @@ For a complete and detailed explanation of the OS architecture, components, and 
 
 # 📦 Upcoming Features / Modules
 
-## 1. Built-in Apps Folder
+## PHASE 1: Bare-Metal Networking Foundation
 
-```
-/app/
-├── core/    → echo, sysinfo, memstat, etc.
-├── utils/   → textedit.bd (nano-style), convert.bd, scan.bd
-├── games/   → netrunner.bd, deckcrack.bd, breakchip.bd
-├── ai/      → analyze.bd, ghostsync.bd (flair-only)
-```
+### 1. PCI Device Scanning
+- Build a PCI configuration space reader (ports `0xCF8`, `0xCFC`)
+- Enumerate all PCI devices
+- Detect network cards (Class: `0x02`, Subclass: `0x00`)
 
-## 2. Basic Text Editor
+### 2. Choose a NIC
+- **Recommended:** Intel 82540EM / E1000 (QEMU-supported)
+- Alternatives: RTL8139, AMD PCnet
 
-- Nano-style built-in editor ( C.A.B.L.E. – Cybernetic Access Buffer for Lightweight Editing ) 
-- Save/load to BDFS files  
-- Stored in `/app/utils/cable.bd`  
-
-## 3. Program Execution Framework
-
-- Load `.bdx` files from `/soul/`  
-- Simple interpreter or native loader  
-- CLI tools & apps can be run from shell  
-
-## 4. System Call Interface (Mini ABI)
-
-System-level functions exposed to programs:
-
-- `syscall 0` → print  
-- `syscall 1` → read  
-- `syscall 2` → open file  
-- `syscall 3` → malloc (optional)  
-
-Helps programs interact with BD kernel  
-
-## 5. Fake AI Hooks (Flair Only)
-
-- Monitor `/drift/`, `/ghost/`, etc.  
-- Print fake logs like:  
-
-```
-[brain] AI analyzing drift logs...
-[brain] Ghost sync triggered from ghost/420.tmp
-```
-
-## 6. Optional: Networking Simulation
-
-- Fake sockets in `/vault/netrunner.sock`  
-- Could simulate ping, connect, hack, etc.  
-- Used in mini-game or CLI simulation  
+### 3. Write E1000 Driver
+- Map MMIO registers from PCI BAR
+- Setup descriptor rings for TX/RX
+- Install IRQ handler for NIC
+- Implement basic Ethernet frame send/receive
+- Print frames via debug shell to verify
 
 ---
 
-##  Intentionally Skipped / Not Needed
+## PHASE 2: Protocol Stack
 
-- File permissions system  
-- Mountable virtual folders  
-- Interactive shell with autocomplete  
-- Scriptable init system  
-- Fancy Cyberdeck ASCII UI shell  
-- Icons for files/folders  
+### 4. Ethernet Protocol
+- Parse Ethernet headers
+- Route frames by EtherType (`0x0800` = IPv4, `0x0806` = ARP)
+
+### 5. ARP (Address Resolution Protocol)
+- Build ARP cache (IP ↔ MAC)
+- Handle ARP requests & send ARP replies
+
+### 6. IPv4
+- Parse and construct IP headers
+- Route IP packets by protocol (ICMP, UDP, TCP)
+- Support basic fragmentation (optional early)
+
+### 7. ICMP
+- Handle ICMP Echo Request & Reply (Ping)
+- Add `ping <ip>` command to BD shell
+
+---
+
+## PHASE 3: Userland Networking Tools
+
+### 8. Shell Commands
+- `ifconfig` – show interface info
+- `ping` – test ICMP
+- `arp` – print ARP table
+
+---
+
+## PHASE 4: Transport Layer
+
+### 9. UDP
+- Implement basic UDP parsing & sending
+- Build echo/receive tool for testing
+
+### 10. TCP (Advanced)
+- Handle 3-way handshake
+- Implement TCP state machine
+- Sliding window + ACKs
+- Build `echo_server` or simple HTTP fetcher
+
+---
+
+## PHASE 5: Real Utility
+
+### 11. DNS (UDP)
+- Send DNS queries
+- Parse responses
+- Support A/AAAA record resolution
+
+### 12. Apps for Johnny Silverhand
+- `curl`-like app for HTTP
+- Port scanner
+- Reverse shell client/server
+- File transfer via TCP
+
+---
+
+## BONUS: Cyberpunk Edition
+
+- Packet sniffer (`tcpdump`-like)
+- Raw socket interface
+- Packet crafting/injector
+- JohnnyNet custom protocol
+- USB WiFi NIC driver (very advanced)
+
+---
