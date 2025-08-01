@@ -24,6 +24,21 @@ void* memcpy(void* dest, const void* src, unsigned int count) {
     return dest;
 }
 
+void* memmove(void* dest, const void* src, unsigned int count) {
+    char* d = (char*)dest;
+    const char* s = (const char*)src;
+    if (d < s) {
+        for (unsigned int i = 0; i < count; i++) {
+            d[i] = s[i];
+        }
+    } else {
+        for (unsigned int i = count; i != 0; i--) {
+            d[i - 1] = s[i - 1];
+        }
+    }
+    return dest;
+}
+
 void* memset(void* dest, int value, unsigned int count) {
     char* d = (char*)dest;
     for (unsigned int i = 0; i < count; i++) {
@@ -277,6 +292,15 @@ void kprintf(const char* fmt, ...) {
 
 char* strcpy(char* dest, const char* src) {
     char* original_dest = dest;
+    while ((*dest++ = *src++));
+    return original_dest;
+}
+
+char* strcat(char* dest, const char* src) {
+    char* original_dest = dest;
+    while (*dest) {
+        dest++;
+    }
     while ((*dest++ = *src++));
     return original_dest;
 }

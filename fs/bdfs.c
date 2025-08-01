@@ -260,8 +260,8 @@ int bdfs_read_file(const char* filename, uint8_t* buffer, uint32_t* bytes_read) 
     *bytes_read = file->length;
 
     if (file->length > 0) {
-        uint32_t offset = (file->start_sector * 512) + (BDFS_FILE_TABLE_SECTORS * 512);
-        memcpy(buffer, &bdfs_storage[offset], file->length);
+        uint32_t offset = (file->start_sector * 512);
+        memcpy(buffer, &bdfs_storage[BDFS_FILE_TABLE_SECTORS * 512 + offset], file->length);
     }
 
     return 0;

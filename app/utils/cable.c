@@ -43,6 +43,8 @@ void editor_init(const char* filename) {
                 editor.buffer[row][col++] = file_content[i];
             }
         }
+        editor.cx = col;
+        editor.cy = row;
     }
 }
 
@@ -73,6 +75,7 @@ void editor_draw() {
 
 void editor_insert_char(char c) {
     if (editor.cx < EDITOR_COLS - 1) {
+        memmove(&editor.buffer[editor.cy][editor.cx + 1], &editor.buffer[editor.cy][editor.cx], strlen(editor.buffer[editor.cy]) - editor.cx);
         editor.buffer[editor.cy][editor.cx] = c;
         editor.cx++;
         editor.dirty = 1;
@@ -82,8 +85,17 @@ void editor_insert_char(char c) {
 void editor_delete_char() {
     if (editor.cx > 0) {
         editor.cx--;
-        editor.buffer[editor.cy][editor.cx] = '\0';
+        memmove(&editor.buffer[editor.cy][editor.cx], &editor.buffer[editor.cy][editor.cx + 1], strlen(editor.buffer[editor.cy]) - editor.cx);
         editor.dirty = 1;
+    } else if (editor.cy > 0) {
+        int prev_line_len = strlen(editor.buffer[editor.cy - 1]);
+        if (prev_line_len + strlen(editor.buffer[editor.cy]) < EDITOR_COLS - 1) {
+            strcat(editor.buffer[editor.cy - 1], editor.buffer[editor.cy]);
+            memmove(&editor.buffer[editor.cy], &editor.buffer[editor.cy + 1], (EDITOR_ROWS - editor.cy - 1) * EDITOR_COLS);
+            editor.cy--;
+            editor.cx = prev_line_len;
+            editor.dirty = 1;
+        }
     }
 }
 
@@ -120,6 +132,25 @@ int editor_process_keypress() {
         if (scancode == 0x10 && ctrl_pressed) {
             // For now, we just exit. A real implementation would check for unsaved changes.
             return 0; // Signal to quit
+        }
+
+
+        // Arrow keys for navigation
+        if (scancode == 0x48) { // Up arrow
+            if (editor.cy > 0) editor.cy--;
+            return 1;
+        }
+        if (scancode == 0x50) { // Down arrow
+            if (editor.cy < EDITOR_ROWS - 2) editor.cy++;
+            return 1;
+        }
+        if (scancode == 0x4B) { // Left arrow
+            if (editor.cx > 0) editor.cx--;
+            return 1;
+        }
+        if (scancode == 0x4D) { // Right arrow
+            if (editor.cx < strlen(editor.buffer[editor.cy])) editor.cx++;
+            return 1;
         }
 
         char c = kbd_us[scancode];
