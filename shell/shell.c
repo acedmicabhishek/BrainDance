@@ -8,6 +8,7 @@
 #include "include/colors.h"
 #include "include/cable.h"
 #include "include/exec.h"
+#include "include/calculator.h"
 
 #define PROMPT "BD> "
 #define MAX_COMMAND_LENGTH 256
@@ -37,6 +38,7 @@ void help_command() {
     print("  ataread  - Read a sector from the ATA drive\n", COLOR_SYSTEM);
     print("  atawrite - Write a sector to the ATA drive\n", COLOR_SYSTEM);
     print("  sysinfo  - Display system information\n", COLOR_SYSTEM);
+    print("  calc     - Evaluate a mathematical expression\n", COLOR_SYSTEM);
    }
 
 void sysinfo_command() {
@@ -363,7 +365,14 @@ void process_command(const char* command) {
        char* lba_str = strtok(NULL, " ");
        char* data = strtok(NULL, "");
        atawrite_command(lba_str, data);
-    } else if (strlen(command) > 0) {
+    } else if (strcmp(token, "calc") == 0) {
+       char* expression = strtok(NULL, "");
+       if (expression) {
+           calculator_main(expression);
+       } else {
+           print("Usage: calc <expression>\n", COLOR_ERROR);
+       }
+   } else if (strlen(command) > 0) {
        if (ends_with(command, ".bdx")) {
            if (execute_bdx(command) != 0) {
                print("Error executing ", COLOR_ERROR);
