@@ -26,6 +26,10 @@ void interpret_bdx(uint8_t* bytecode) {
                 bdfs_write_file(path, data, len);
                 break;
             }
+            case OPCODE_SYSCALL_VESA_ENABLE: {
+                vesa_init(*(uint32_t*)0x904);
+                break;
+            }
             case OPCODE_EXIT: {
                 return;
             }

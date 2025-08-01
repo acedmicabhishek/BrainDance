@@ -22,6 +22,14 @@ start:
     int 0x13          ; Call BIOS disk services
     jc halt           ; If carry flag is set, halt
 
+        ; --- Get VESA Framebuffer Address ---
+        mov ax, 0x4F01
+        mov cx, 0x11A
+        mov di, vbe_mode_info
+        int 0x10
+        mov eax, [vbe_mode_info + 40]
+        mov [0x904], eax
+    
     ; --- Read E820 Memory Map ---
     xor ebx, ebx      ; Start with EBX = 0
     mov edi, 0x1000   ; Buffer to store map entries
@@ -95,6 +103,9 @@ halt:
     jmp halt
 
 
+
+vbe_mode_info:
+    times 256 db 0
 
 ; --- GDT Segment Selectors ---
 CODE_SEG equ 0x08

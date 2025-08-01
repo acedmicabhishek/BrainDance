@@ -28,6 +28,7 @@ void kprintf(const char* fmt, ...);
 int snprintf(char* str, unsigned int size, const char* format, ...);
 void print_char_at(char c, unsigned char color, int x, int y);
 void set_cursor(int x, int y);
+void update_cursor();
 
 void panic(const char* msg);
 void log(const char* tag, const char* msg);

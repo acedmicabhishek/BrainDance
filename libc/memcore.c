@@ -1,6 +1,9 @@
 #include "./include/memcore.h"
 #include "./include/ports.h"
 #include "./include/types.h"
+#include "include/graphics.h"
+#include "include/vesa.h"
+#include "include/timer.h"
 
 static int cursor_row = 0;
 static int cursor_col = 0;
@@ -76,27 +79,42 @@ int strncmp(const char* str1, const char* str2, size_t n) {
 }
 
 void print_backspace() {
-    if (cursor_col > 0) {
-        cursor_col--;
-        int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
-        VGA_MEMORY[offset] = ' ';
-        VGA_MEMORY[offset + 1] = 0x07; // Default color
-    } else if (cursor_row > 0) {
-        cursor_row--;
-        cursor_col = VGA_WIDTH - 1;
-        int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
-        VGA_MEMORY[offset] = ' ';
-        VGA_MEMORY[offset + 1] = 0x07; // Default color
+    if (get_graphics_mode() == VGA_MODE) {
+        if (cursor_col > 0) {
+            cursor_col--;
+            int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
+            VGA_MEMORY[offset] = ' ';
+            VGA_MEMORY[offset + 1] = 0x07; // Default color
+        } else if (cursor_row > 0) {
+            cursor_row--;
+            cursor_col = VGA_WIDTH - 1;
+            int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
+            VGA_MEMORY[offset] = ' ';
+            VGA_MEMORY[offset + 1] = 0x07; // Default color
+        }
+    } else {
+        if (cursor_col > 0) {
+            cursor_col--;
+            draw_char(cursor_col * 8, cursor_row * 16, ' ', 0x000000);
+        } else if (cursor_row > 0) {
+            cursor_row--;
+            cursor_col = get_vesa_width() / 8 - 1;
+            draw_char(cursor_col * 8, cursor_row * 16, ' ', 0x000000);
+        }
     }
 }
 
 void clear_screen(unsigned char color) {
-    for (int row = 0; row < VGA_HEIGHT; row++) {
-        for (int col = 0; col < VGA_WIDTH; col++) {
-            int offset = (row * VGA_WIDTH + col) * 2;
-            VGA_MEMORY[offset] = ' ';
-            VGA_MEMORY[offset + 1] = color;
+    if (get_graphics_mode() == VGA_MODE) {
+        for (int row = 0; row < VGA_HEIGHT; row++) {
+            for (int col = 0; col < VGA_WIDTH; col++) {
+                int offset = (row * VGA_WIDTH + col) * 2;
+                VGA_MEMORY[offset] = ' ';
+                VGA_MEMORY[offset + 1] = color;
+            }
         }
+    } else {
+        vesa_clear_screen(color);
     }
     cursor_row = 0;
     cursor_col = 0;
@@ -165,38 +183,47 @@ void print_hex(unsigned int number, unsigned char color) {
 
 void print(const char* msg, unsigned char color) {
     for (int i = 0; msg[i] != 0; ++i) {
-        if (msg[i] == '\n' || cursor_col >= VGA_WIDTH) {
-            cursor_row++;
-            cursor_col = 0;
-            if (msg[i] == '\n') continue;
-        }
-        if (cursor_row >= VGA_HEIGHT) scroll_up();
-
-        int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
-        VGA_MEMORY[offset] = msg[i];
-        VGA_MEMORY[offset + 1] = color;
-        cursor_col++;
+        print_char(msg[i], color);
     }
 }
 
 void scroll_up() {
-    for (int row = 1; row < VGA_HEIGHT; row++) {
-        for (int col = 0; col < VGA_WIDTH; col++) {
-            int from = (row * VGA_WIDTH + col) * 2;
-            int to = ((row - 1) * VGA_WIDTH + col) * 2;
-            VGA_MEMORY[to] = VGA_MEMORY[from];
-            VGA_MEMORY[to + 1] = VGA_MEMORY[from + 1];
+    if (get_graphics_mode() == VGA_MODE) {
+        for (int row = 1; row < VGA_HEIGHT; row++) {
+            for (int col = 0; col < VGA_WIDTH; col++) {
+                int from = (row * VGA_WIDTH + col) * 2;
+                int to = ((row - 1) * VGA_WIDTH + col) * 2;
+                VGA_MEMORY[to] = VGA_MEMORY[from];
+                VGA_MEMORY[to + 1] = VGA_MEMORY[from + 1];
+            }
         }
-    }
 
-    // Clear last line
-    for (int col = 0; col < VGA_WIDTH; col++) {
-        int offset = ((VGA_HEIGHT - 1) * VGA_WIDTH + col) * 2;
-        VGA_MEMORY[offset] = ' ';
-        VGA_MEMORY[offset + 1] = 0x07;
-    }
+        // Clear last line
+        for (int col = 0; col < VGA_WIDTH; col++) {
+            int offset = ((VGA_HEIGHT - 1) * VGA_WIDTH + col) * 2;
+            VGA_MEMORY[offset] = ' ';
+            VGA_MEMORY[offset + 1] = 0x07;
+        }
 
-    cursor_row = VGA_HEIGHT - 1;
+        cursor_row = VGA_HEIGHT - 1;
+    } else {
+        // VESA scroll
+        uint32_t* framebuffer = (uint32_t*)get_vesa_framebuffer();
+        uint32_t pitch = get_vesa_pitch();
+        uint32_t height = get_vesa_height();
+        uint32_t char_height = 16;
+
+        // Move everything up by one character height
+        memmove(framebuffer, framebuffer + (pitch / 4) * char_height, (height - char_height) * pitch);
+
+        // Clear the last line
+        for (uint32_t y = height - char_height; y < height; y++) {
+            for (uint32_t x = 0; x < get_vesa_width(); x++) {
+                put_pixel(x, y, 0x000000);
+            }
+        }
+        cursor_row--;
+    }
 }
 
 void panic(const char* msg) {
@@ -217,20 +244,37 @@ void log(const char* tag, const char* msg) {
 }
 
 void print_char(char c, unsigned char color) {
-    if (c == '\n' || cursor_col >= VGA_WIDTH) {
-        cursor_row++;
-        cursor_col = 0;
-        if (c == '\n') return;
-    }
+    if (get_graphics_mode() == VGA_MODE) {
+        if (c == '\n' || cursor_col >= VGA_WIDTH) {
+            cursor_row++;
+            cursor_col = 0;
+            if (c == '\n') return;
+        }
 
-    if (cursor_row >= VGA_HEIGHT) {
-        scroll_up();
-    }
+        if (cursor_row >= VGA_HEIGHT) {
+            scroll_up();
+        }
 
-    int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
-    VGA_MEMORY[offset] = c;
-    VGA_MEMORY[offset + 1] = color;
-    cursor_col++;
+        int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
+        VGA_MEMORY[offset] = c;
+        VGA_MEMORY[offset + 1] = color;
+        cursor_col++;
+    } else {
+        if (c == '\n') {
+            cursor_row++;
+            cursor_col = 0;
+            return;
+        }
+        if (cursor_col >= get_vesa_width() / 8) {
+            cursor_col = 0;
+            cursor_row++;
+        }
+        if (cursor_row >= get_vesa_height() / 16) {
+            scroll_up();
+        }
+        draw_char(cursor_col * 8, cursor_row * 16, c, color);
+        cursor_col++;
+    }
 }
 
 void println(const char* msg, unsigned char color) {
@@ -439,12 +483,30 @@ char* strncpy(char* dest, const char* src, unsigned int n) {
    }
    
    void set_cursor(int x, int y) {
-       if (x >= VGA_WIDTH || y >= VGA_HEIGHT) return;
-       cursor_col = x;
-       cursor_row = y;
-       uint16_t pos = y * VGA_WIDTH + x;
-       outb(0x3D4, 0x0F);
-       outb(0x3D5, (uint8_t)(pos & 0xFF));
-       outb(0x3D4, 0x0E);
-       outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
+       if (get_graphics_mode() == VGA_MODE) {
+           if (x >= VGA_WIDTH || y >= VGA_HEIGHT) return;
+           cursor_col = x;
+           cursor_row = y;
+           uint16_t pos = y * VGA_WIDTH + x;
+           outb(0x3D4, 0x0F);
+           outb(0x3D5, (uint8_t)(pos & 0xFF));
+           outb(0x3D4, 0x0E);
+           outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
+       } else {
+           // No hardware cursor in VESA mode, we'll draw our own
+       }
+   }
+   
+   void update_cursor() {
+       if (get_graphics_mode() == VESA_MODE) {
+           static int cursor_visible = 1;
+           if (timer_ticks % 50 == 0) {
+               cursor_visible = !cursor_visible;
+           }
+           if (cursor_visible) {
+               draw_char(cursor_col * 8, cursor_row * 16, '_', 0xFFFFFF);
+           } else {
+               draw_char(cursor_col * 8, cursor_row * 16, ' ', 0x000000);
+           }
+       }
    }

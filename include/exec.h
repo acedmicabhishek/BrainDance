@@ -7,7 +7,8 @@
 #define OPCODE_SYSCALL_PRINT 0x01
 #define OPCODE_SYSCALL_READ  0x02
 #define OPCODE_SYSCALL_WRITE 0x03
-#define OPCODE_EXIT          0x04
+#define OPCODE_SYSCALL_VESA_ENABLE 0x04
+#define OPCODE_EXIT          0x05
 
 // Function prototypes
 int execute_bdx(const char* path);

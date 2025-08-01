@@ -53,6 +53,20 @@ drivers/keyboard_driver.o: drivers/keyboard_driver.c include/keyboard.h include/
 drivers/ata/ata.o: drivers/ata/ata.c include/ata.h include/ports.h
 	i686-elf-gcc $(CFLAGS) -c drivers/ata/ata.c -o drivers/ata/ata.o
 
+# Compile VESA driver
+drivers/video/font.o: drivers/video/font.c include/font.h
+	i686-elf-gcc $(CFLAGS) -c drivers/video/font.c -o drivers/video/font.o
+
+drivers/video/vesa.o: drivers/video/vesa.c include/vesa.h
+	i686-elf-gcc $(CFLAGS) -c drivers/video/vesa.c -o drivers/video/vesa.o
+
+arch/i386/vesa_trampoline.o: arch/i386/vesa_trampoline.asm
+	nasm -f elf32 arch/i386/vesa_trampoline.asm -o arch/i386/vesa_trampoline.o
+
+# Compile Graphics
+drivers/video/graphics.o: drivers/video/graphics.c include/graphics.h
+	i686-elf-gcc $(CFLAGS) -c drivers/video/graphics.c -o drivers/video/graphics.o
+
 # Compile Shell
 shell/shell.o: shell/shell.c include/shell.h
 	i686-elf-gcc $(CFLAGS) -c shell/shell.c -o shell/shell.o
@@ -77,13 +91,13 @@ kernel/BDkernel.o: kernel/BDkernel.c include/memcore.h include/idt.h include/isr
 	i686-elf-gcc $(CFLAGS) -c kernel/BDkernel.c -o kernel/BDkernel.o
 
 # Link kernel
-BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o kernel/linker.ld
-	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o
+BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o drivers/video/vesa.o drivers/video/font.o drivers/video/graphics.o arch/i386/vesa_trampoline.o kernel/linker.ld
+	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o drivers/video/vesa.o drivers/video/font.o drivers/video/graphics.o arch/i386/vesa_trampoline.o
 	objcopy -O binary BDkernel.elf BDkernel.bin
 
 # Create bootable image
 bdos.img: BDbootloader.bin BDkernel.bin
-	dd if=/dev/zero of=bdos.img bs=512 count=130
+	dd if=/dev/zero of=bdos.img bs=512 count=5760
 	dd if=BDbootloader.bin of=bdos.img conv=notrunc
 	dd if=BDkernel.bin of=bdos.img seek=1 conv=notrunc
 
@@ -93,4 +107,4 @@ run: bdos.img
 
 # Clean build files
 clean:
-	rm -f *.bin *.o *.elf bdos.img boot/*.bin kernel/*.o kernel/*.elf libc/*.o arch/i386/*.o drivers/*.o drivers/ata/*.o fs/*.o app/utils/*.o exec/*.o
+	rm -f *.bin *.o *.elf bdos.img boot/*.bin kernel/*.o kernel/*.elf libc/*.o arch/i386/*.o drivers/*.o drivers/ata/*.o fs/*.o app/utils/*.o exec/*.o drivers/video/*.o

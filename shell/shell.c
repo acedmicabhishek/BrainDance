@@ -9,12 +9,16 @@
 #include "include/cable.h"
 #include "include/exec.h"
 #include "include/calculator.h"
+#include "include/vesa.h"
+#include "include/graphics.h"
 
 #define PROMPT "BD> "
 #define MAX_COMMAND_LENGTH 256
 
 static char command_buffer[MAX_COMMAND_LENGTH];
 static int command_len = 0;
+
+void print_prompt();
 
 // Command handlers
 void help_command() {
@@ -36,6 +40,8 @@ void help_command() {
     print("  cd       - Change directory\n", COLOR_SYSTEM);
     print("  sysinfo  - Display system information\n", COLOR_SYSTEM);
     print("  calc     - Evaluate a mathematical expression\n", COLOR_SYSTEM);
+    print("  startx   - Switch to VESA graphics mode\n", COLOR_SYSTEM);
+    print("  vesaoff  - Switch back to VGA text mode\n", COLOR_SYSTEM);
 }
 
 void sysinfo_command() {
@@ -290,6 +296,24 @@ void process_command(const char* command) {
        } else {
            print("Usage: cd <dirname>\n", COLOR_ERROR);
        }
+    } else if (strcmp(token, "startx") == 0) {
+       uint32_t vesa_framebuffer = *(uint32_t*)0x904;
+       vesa_init(vesa_framebuffer, 1024, 768, 1024 * 4);
+       set_graphics_mode(VESA_MODE);
+       vesa_clear_screen(0x000000);
+       print("entering graphical shell...\n", COLOR_SYSTEM);
+       // Re-render the shell
+       command_len = 0;
+       memset(command_buffer, 0, MAX_COMMAND_LENGTH);
+       print_prompt();
+   } else if (strcmp(token, "vesaoff") == 0) {
+       set_graphics_mode(VGA_MODE);
+       clear_screen(0x07);
+       print("exiting graphical shell...\n", COLOR_SYSTEM);
+       // Re-render the shell
+       command_len = 0;
+       memset(command_buffer, 0, MAX_COMMAND_LENGTH);
+       print_prompt();
     } else if (strcmp(token, "calc") == 0) {
        char* expression = strtok(NULL, "");
        if (expression) {
@@ -323,6 +347,7 @@ void start_shell() {
     print("Welcome to BrainDance OS\n", COLOR_PROMPT);
     print_prompt();
     while (1) {
+        update_cursor();
         char c = keyboard_get_char();
         if (c == '\0') {
             continue;

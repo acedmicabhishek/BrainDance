@@ -15,17 +15,22 @@ extern char _stack_end;
 #include "include/heap.h"
 #include "include/bdfs.h"
 #include "include/ata.h"
+#include "include/vesa.h"
+#include "include/graphics.h"
 
 // Define the RAM disk base address
 #define RAMDISK_BASE 0x200000
+
+
 void kernel_main() {
     // Read memory map info from the bootloader-populated addresses
     uint32_t mmap_entries = *(uint32_t*)0x900;
     uint32_t mmap_addr = 0x1000;
-
     // Initialize the PMM
     pmm_init(mmap_addr, mmap_entries);
 
+    // Set graphics mode to VGA
+    set_graphics_mode(VGA_MODE);
     clear_screen(0x07);
     print("BrainDance Kernel Loaded.\n\n", 0x04);
 
@@ -78,6 +83,7 @@ void kernel_main() {
     // Initialize BDFS
     bdfs_init();
     print("INFO: BDFS initialized\n", 0x02);
+
 
     // Enable interrupts
     asm volatile ("sti");
