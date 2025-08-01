@@ -1,10 +1,14 @@
 #include "include/vesa.h"
 #include "include/memcore.h"
 #include "include/font.h"
+#include "include/colors.h"
 
 #define FONT_WIDTH 8
 #define FONT_HEIGHT 16
 
+extern void vesa_trampoline_start();
+extern void vesa_trampoline_end();
+extern uint16_t* vesa_trampoline_mode_ptr;
 
 static uint32_t* framebuffer;
 static uint16_t width;
@@ -64,4 +68,23 @@ uint16_t get_vesa_pitch() {
 
 uint32_t* get_vesa_framebuffer() {
     return framebuffer;
+}
+
+void vesa_set_mode(uint16_t mode) {
+    // Copy the trampoline code to low memory
+    memcpy((void*)0x1000, vesa_trampoline_start, (uint32_t)vesa_trampoline_end - (uint32_t)vesa_trampoline_start);
+
+    // Set the mode in the trampoline's data section in low memory
+    uint16_t* mode_ptr_low_mem = (uint16_t*)(0x1000 + ((void*)vesa_trampoline_mode_ptr - (void*)vesa_trampoline_start));
+    *mode_ptr_low_mem = mode;
+
+    // Call the trampoline
+    void (*trampoline)() = (void (*)())0x1000;
+    trampoline();
+
+    if (*(uint32_t*)0x7E00 == 0xCAFEBABE) {
+        print("return_to_kernel reached!\n", COLOR_SUCCESS);
+    } else {
+        print("return_to_kernel NOT reached!\n", COLOR_ERROR);
+    }
 }

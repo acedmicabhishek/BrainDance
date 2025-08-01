@@ -297,6 +297,7 @@ void process_command(const char* command) {
            print("Usage: cd <dirname>\n", COLOR_ERROR);
        }
     } else if (strcmp(token, "startx") == 0) {
+       vesa_set_mode(0x118); // 1024x768x32bpp
        uint32_t vesa_framebuffer = *(uint32_t*)0x904;
        vesa_init(vesa_framebuffer, 1024, 768, 1024 * 4);
        set_graphics_mode(VESA_MODE);
@@ -307,6 +308,7 @@ void process_command(const char* command) {
        memset(command_buffer, 0, MAX_COMMAND_LENGTH);
        print_prompt();
    } else if (strcmp(token, "vesaoff") == 0) {
+       vesa_set_mode(0x03); // 80x25 text mode
        set_graphics_mode(VGA_MODE);
        clear_screen(0x07);
        print("exiting graphical shell...\n", COLOR_SYSTEM);
