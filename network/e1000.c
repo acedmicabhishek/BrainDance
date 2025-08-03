@@ -15,6 +15,7 @@
 #define RCTL_EN      (1 << 1)
 #define RCTL_BAM     (1 << 15)
 #define RCTL_SECRC   (1 << 26)
+#define RCTL_SZ_2048 (0 << 16)
 
 #define E1000_TDBAL 0x3800
 #define E1000_TDBAH 0x3804
@@ -34,6 +35,53 @@ static uint8_t* tx_buffers[TX_DESC_COUNT];
 
 static void e1000_write(uint16_t offset, uint32_t value) {
     e1000_regs[offset / 4] = value;
+}
+static void dump_packet(uint8_t* buf, uint16_t len) {
+    // Placeholder
+}
+
+void e1000_rx_init() {
+    rx_ring = alloc_aligned(RX_DESC_COUNT * sizeof(struct e1000_rx_desc), 16);
+    
+    for (int i = 0; i < RX_DESC_COUNT; ++i) {
+        void* phys = pmm_alloc_block();
+        rx_buffers[i] = kmalloc(2048);
+        map_page((uint32_t)phys, (uint32_t)rx_buffers[i], PTE_PRESENT | PTE_RW);
+        rx_ring[i].addr = (uint64_t)phys;
+        rx_ring[i].status = 0;
+    }
+
+    uintptr_t phys_ring = get_phys_addr((uintptr_t)rx_ring);
+    e1000_write(E1000_RDBAL, (uint32_t)phys_ring);
+    e1000_write(E1000_RDBAH, (uint32_t)(phys_ring >> 32));
+    e1000_write(E1000_RDLEN, RX_DESC_COUNT * sizeof(struct e1000_rx_desc));
+    e1000_write(E1000_RDH, 0);
+    e1000_write(E1000_RDT, RX_DESC_COUNT - 1);
+
+    uint32_t rctl = RCTL_EN | RCTL_BAM | RCTL_SECRC | RCTL_SZ_2048;
+    e1000_write(E1000_RCTL, rctl);
+}
+
+void e1000_tx_init() {
+    tx_ring = alloc_aligned(TX_DESC_COUNT * sizeof(struct e1000_tx_desc), 16);
+
+    for (int i = 0; i < TX_DESC_COUNT; ++i) {
+        void* phys = pmm_alloc_block();
+        tx_buffers[i] = kmalloc(2048);
+        map_page((uint32_t)phys, (uint32_t)tx_buffers[i], PTE_PRESENT | PTE_RW);
+        tx_ring[i].addr = (uint64_t)phys;
+        tx_ring[i].status = 0;
+    }
+
+    uintptr_t phys_ring = get_phys_addr((uintptr_t)tx_ring);
+    e1000_write(E1000_TDBAL, (uint32_t)phys_ring);
+    e1000_write(E1000_TDBAH, (uint32_t)(phys_ring >> 32));
+    e1000_write(E1000_TDLEN, TX_DESC_COUNT * sizeof(struct e1000_tx_desc));
+    e1000_write(E1000_TDH, 0);
+    e1000_write(E1000_TDT, 0);
+
+    uint32_t tctl = TCTL_EN | TCTL_PSP;
+    e1000_write(E1000_TCTL, tctl);
 }
 
 bool e1000_init(uint8_t bus, uint8_t dev, uint8_t func) {
@@ -56,42 +104,23 @@ bool e1000_init(uint8_t bus, uint8_t dev, uint8_t func) {
     print_hex(status, 0x07);
     print("\n", 0x07);
 
-    // RX Ring Setup
-    rx_ring = alloc_aligned(sizeof(struct e1000_rx_desc) * RX_DESC_COUNT, 16);
-    for (int i = 0; i < RX_DESC_COUNT; ++i) {
-        void* phys_addr = pmm_alloc_block();
-        rx_buffers[i] = kmalloc(4096); // Allocate virtual space
-        map_page((uint32_t)phys_addr, (uint32_t)rx_buffers[i], PTE_PRESENT | PTE_RW);
-        rx_ring[i].addr = (uint64_t)phys_addr;
-        rx_ring[i].status = 0;
-    }
-
-    e1000_write(E1000_RDBAL, (uint32_t)(uint64_t)get_phys_addr((uint32_t)rx_ring));
-    e1000_write(E1000_RDBAH, (uint32_t)((uint64_t)get_phys_addr((uint32_t)rx_ring) >> 32));
-    e1000_write(E1000_RDLEN, RX_DESC_COUNT * sizeof(struct e1000_rx_desc));
-    e1000_write(E1000_RDH, 0);
-    e1000_write(E1000_RDT, RX_DESC_COUNT - 1);
-    uint32_t rctl = RCTL_EN | RCTL_BAM | RCTL_SECRC;
-    e1000_write(E1000_RCTL, rctl);
-
-    // TX Ring Setup
-    tx_ring = alloc_aligned(sizeof(struct e1000_tx_desc) * TX_DESC_COUNT, 16);
-    for (int i = 0; i < TX_DESC_COUNT; ++i) {
-        void* phys_addr = pmm_alloc_block();
-        tx_buffers[i] = kmalloc(4096); // Allocate virtual space
-        map_page((uint32_t)phys_addr, (uint32_t)tx_buffers[i], PTE_PRESENT | PTE_RW);
-        tx_ring[i].addr = (uint64_t)phys_addr;
-        tx_ring[i].cmd = 0;
-    }
-
-    e1000_write(E1000_TDBAL, (uint32_t)(uint64_t)get_phys_addr((uint32_t)tx_ring));
-    e1000_write(E1000_TDBAH, (uint32_t)((uint64_t)get_phys_addr((uint32_t)tx_ring) >> 32));
-    e1000_write(E1000_TDLEN, TX_DESC_COUNT * sizeof(struct e1000_tx_desc));
-    e1000_write(E1000_TDH, 0);
-    e1000_write(E1000_TDT, 0);
-    uint32_t tctl = TCTL_EN | TCTL_PSP;
-    e1000_write(E1000_TCTL, tctl);
-    print("TX ring enabled.\n", 0x07);
+    e1000_rx_init();
+    e1000_tx_init();
 
     return true;
+}
+
+void e1000_poll_rx() {
+    static int idx = 0;
+    struct e1000_rx_desc* desc = &rx_ring[idx];
+
+    if (desc->status & 0x01) {
+        print("RX len=", 0x07);
+        print_int(desc->length, 0x07);
+        print("\n", 0x07);
+        dump_packet(rx_buffers[idx], desc->length);
+        desc->status = 0;
+        e1000_write(E1000_RDT, idx);
+        idx = (idx + 1) % RX_DESC_COUNT;
+    }
 }
