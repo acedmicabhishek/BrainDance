@@ -15,6 +15,7 @@ extern char _stack_end;
 #include "include/heap.h"
 #include "include/bdfs.h"
 #include "include/ata.h"
+#include "include/pci.h"
 
 // Define the RAM disk base address
 #define RAMDISK_BASE 0x200000
@@ -82,6 +83,9 @@ void kernel_main() {
     // Enable interrupts
     asm volatile ("sti");
 
+
+    // Scan for PCI devices
+    pci_scan_all();
 
     // Start the shell
     start_shell();
