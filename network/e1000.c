@@ -58,16 +58,19 @@ static void dump_packet(uint8_t* buf, uint16_t len) {
 
 void e1000_rx_init() {
     rx_ring = alloc_aligned(RX_DESC_COUNT * sizeof(struct e1000_rx_desc), 16);
+    kprintf("RX ring allocated at virt %p\n", rx_ring);
     
     for (int i = 0; i < RX_DESC_COUNT; ++i) {
-        uintptr_t phys = (uintptr_t)pmm_alloc_block();
+        uintptr_t phys_buf = (uintptr_t)pmm_alloc_block();
         rx_buffers[i] = kmalloc(2048);
-        map_page(phys, (uint32_t)rx_buffers[i], PTE_PRESENT | PTE_RW);
-        rx_ring[i].addr = (uint64_t)phys;
+        map_page(phys_buf, (uint32_t)rx_buffers[i], PTE_PRESENT | PTE_RW);
+        rx_ring[i].addr = (uint64_t)phys_buf;
         rx_ring[i].status = 0;
+        kprintf("RX desc[%d]: virt buf=%p, phys buf=0x%lx, desc addr=0x%lx\n", i, rx_buffers[i], phys_buf, rx_ring[i].addr);
     }
 
     uintptr_t phys_ring = get_phys_addr((uintptr_t)rx_ring);
+    kprintf("RX ring phys addr: 0x%lx\n", phys_ring);
     e1000_write(E1000_RDBAL, (uint32_t)phys_ring);
     e1000_write(E1000_RDBAH, 0);
     e1000_write(E1000_RDLEN, RX_DESC_COUNT * sizeof(struct e1000_rx_desc));
@@ -76,6 +79,7 @@ void e1000_rx_init() {
 
     uint32_t rctl = RCTL_EN | RCTL_BAM | RCTL_SECRC | RCTL_SZ_2048 | RCTL_MPE;
     e1000_write(E1000_RCTL, rctl);
+    kprintf("RCTL set to 0x%x\n", rctl);
 }
 
 void e1000_tx_init() {
@@ -162,15 +166,17 @@ void e1000_poll_rx() {
 
     uint32_t rdh = e1000_read(E1000_RDH);
     uint32_t rdt = e1000_read(E1000_RDT);
-    kprintf("RDH: %d, RDT: %d, idx: %d, status: %x\n", rdh, rdt, idx, desc->status);
+    kprintf("RDH: %d, RDT: %d, idx: %d, status: %x, desc_addr: %p\n", rdh, rdt, idx, desc->status, desc);
+
+    for (int i = 0; i < RX_DESC_COUNT; ++i) {
+        kprintf("Desc[%d] status: 0x%x, addr: 0x%lx\n", i, rx_ring[i].status, rx_ring[i].addr);
+    }
 
     while (desc->status & 0x01) {
         kprintf("Packet received at index %d\n", idx);
         dump_packet(rx_buffers[idx], desc->length);
         desc->status = 0;
-        
         e1000_write(E1000_RDT, idx);
-        
         idx = (idx + 1) % RX_DESC_COUNT;
         desc = &rx_ring[idx];
     }

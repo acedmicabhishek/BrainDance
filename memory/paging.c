@@ -2,6 +2,7 @@
 #include "include/regs.h"
 #include "include/isr.h"
 #include "include/memcore.h"
+#include "include/heap.h"
 
 // Page directory and table placed at specific physical addresses
 page_directory_t* page_directory = (page_directory_t*)0x90000;
@@ -52,6 +53,11 @@ void paging_install() {
 
     // --- 2. Install Page Fault Handler ---
     register_interrupt_handler(14, page_fault_handler);
+
+    // Map the kernel heap
+    for (uint32_t addr = HEAP_START; addr < HEAP_END; addr += 0x1000) {
+        map_page(addr, addr, PTE_PRESENT | PTE_RW);
+    }
 
     // --- 3. Enable Paging ---
     asm volatile("mov %0, %%cr3" :: "r"(page_directory));

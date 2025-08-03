@@ -246,6 +246,13 @@ void kprintf(const char* fmt, ...) {
     for (int i = 0; fmt[i] != '\0'; i++) {
         if (fmt[i] == '%') {
             i++;
+            
+            bool long_modifier = false;
+            if (fmt[i] == 'l') {
+                long_modifier = true;
+                i++;
+            }
+
             char spec = fmt[i];
             switch (spec) {
                 case 'd': {
@@ -259,8 +266,18 @@ void kprintf(const char* fmt, ...) {
                     break;
                 }
                 case 'x': {
-                    unsigned int val = va_arg(args, unsigned int);
-                    print_hex(val, 0x07);
+                    if (long_modifier) {
+                        unsigned long val = va_arg(args, unsigned long);
+                        print_hex(val, 0x07);
+                    } else {
+                        unsigned int val = va_arg(args, unsigned int);
+                        print_hex(val, 0x07);
+                    }
+                    break;
+                }
+                case 'p': {
+                    void* ptr = va_arg(args, void*);
+                    print_hex((uint32_t)ptr, 0x07);
                     break;
                 }
                 case 's': {
@@ -279,6 +296,7 @@ void kprintf(const char* fmt, ...) {
                 }
                 default:
                     print_char('%', 0x07);
+                    if (long_modifier) print_char('l', 0x07);
                     print_char(spec, 0x07);
                     break;
             }
