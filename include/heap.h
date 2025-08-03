@@ -7,6 +7,7 @@
 #define HEAP_END   0x800000
 
 void* kmalloc(uint32_t size);
+void* alloc_aligned(uint32_t size, uint32_t alignment);
 void kfree(void* ptr);
 
 #endif

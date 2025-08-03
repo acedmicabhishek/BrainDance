@@ -45,6 +45,11 @@ void paging_install() {
     pde->rw = 1;
     pde->frame = (uint32_t)first_page_table >> 12;
 
+    // Add recursive mapping (map the last PDE to the page directory itself)
+    page_directory->tables[1023].present = 1;
+    page_directory->tables[1023].rw = 1;
+    page_directory->tables[1023].frame = (uint32_t)page_directory >> 12;
+
     // --- 2. Install Page Fault Handler ---
     register_interrupt_handler(14, page_fault_handler);
 
@@ -80,16 +85,13 @@ void map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags) {
         pde->user = 1; // User-mode access
         pde->frame = new_pt_phys_addr >> 12;
 
-        // Clear the new page table
-        // We need to temporarily map it to a virtual address to clear it
-        // For simplicity, we'll assume a direct mapping for now or use a known temporary virtual address
-        // In a real kernel, you'd have a dedicated temporary mapping mechanism.
-        // For this exercise, we'll directly cast the physical address, assuming it's accessible.
-        memset((void*)new_pt_phys_addr, 0, sizeof(page_table_t));
+
+        page_table_t* new_pt_virt = (page_table_t*)(0xFFC00000 | (pd_idx << 12));
+        memset(new_pt_virt, 0, sizeof(page_table_t));
     }
 
-    // Get the page table (it's already mapped if PDE was present, or just created)
-    page_table_t* page_table = (page_table_t*)(pde->frame << 12);
+    // Get the page table using the recursive mapping
+    page_table_t* page_table = (page_table_t*)(0xFFC00000 | (pd_idx << 12));
 
     // Get the page table entry
     page_table_entry_t* pte = &page_table->pages[pt_idx];
@@ -124,9 +126,6 @@ void unmap_page(uint32_t virt_addr) {
     // Invalidate TLB for the virtual address
     asm volatile("invlpg (%0)" :: "r"(virt_addr) : "memory");
 
-    // TODO: Optionally, if the page table becomes empty, free the page table itself
-    // This would involve checking if all entries in the page_table are not present.
-    // For simplicity, we are not doing this in a basic implementation.
 }
 
 uint32_t get_phys_addr(uint32_t virt_addr) {
@@ -139,7 +138,7 @@ uint32_t get_phys_addr(uint32_t virt_addr) {
         return 0; // Not mapped
     }
 
-    page_table_t* page_table = (page_table_t*)(pde->frame << 12);
+    page_table_t* page_table = (page_table_t*)(0xFFC00000 | (pd_idx << 12));
     page_table_entry_t* pte = &page_table->pages[pt_idx];
 
     if (!pte->present) {
