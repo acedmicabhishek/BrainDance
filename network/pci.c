@@ -2,6 +2,7 @@
 #include "../include/ports.h"
 #include "../include/types.h"
 #include "../include/memcore.h"
+#include "../include/e1000.h"
 
 
 uint32_t pci_config_read(uint8_t bus, uint8_t device, uint8_t func, uint8_t offset) {
@@ -37,6 +38,7 @@ void pci_scan_all() {
                     print(", Func ", 0x07);
                     print_int(func, 0x07);
                     print("\n", 0x07);
+                    e1000_init(bus, dev, func);
                 }
             }
         }
