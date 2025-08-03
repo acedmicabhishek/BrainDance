@@ -97,7 +97,7 @@ bdos.img: BDbootloader.bin BDkernel.bin
 
 # Run with QEMU
 run: bdos.img
-	qemu-system-i386 -drive format=raw,file=bdos.img
+	qemu-system-i386 -drive format=raw,file=bdos.img -netdev user,id=n0 -device e1000,netdev=n0 -serial stdio
 
 # Clean build files
 clean:

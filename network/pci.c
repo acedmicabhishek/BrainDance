@@ -16,6 +16,17 @@ uint32_t pci_config_read(uint8_t bus, uint8_t device, uint8_t func, uint8_t offs
     return inl(0xCFC);
 }
 
+void pci_config_write(uint8_t bus, uint8_t device, uint8_t func, uint8_t offset, uint32_t data) {
+    uint32_t address = (1U << 31)
+                     | ((uint32_t)bus << 16)
+                     | ((uint32_t)device << 11)
+                     | ((uint32_t)func << 8)
+                     | (offset & 0xFC);
+
+    outl(0xCF8, address);
+    outl(0xCFC, data);
+}
+
 void pci_scan_all() {
     for (uint16_t bus = 0; bus < 256; ++bus) {
         for (uint8_t dev = 0; dev < 32; ++dev) {

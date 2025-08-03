@@ -1,6 +1,7 @@
 #pragma once
 
 extern int ctrl_pressed;
+extern int break_signal;
 extern unsigned char kbd_us[128];
 
 void keyboard_install();

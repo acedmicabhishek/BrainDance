@@ -9,6 +9,7 @@
 #include "include/cable.h"
 #include "include/exec.h"
 #include "include/calculator.h"
+#include "include/e1000.h"
 
 #define PROMPT "BD> "
 #define MAX_COMMAND_LENGTH 256
@@ -297,6 +298,11 @@ void process_command(const char* command) {
        } else {
            print("Usage: calc <expression>\n", COLOR_ERROR);
        }
+   } else if (strcmp(token, "netpoll") == 0) {
+       for (int i = 0; i < 10; i++) {
+           e1000_poll_rx();
+           sleep(100);
+       }
    } else if (strlen(command) > 0) {
        if (ends_with(command, ".bdx")) {
            if (execute_bdx(command) != 0) {
@@ -323,6 +329,14 @@ void start_shell() {
     print("Welcome to BrainDance OS\n", COLOR_PROMPT);
     print_prompt();
     while (1) {
+        if (break_signal) {
+            break_signal = 0;
+            command_len = 0;
+            memset(command_buffer, 0, MAX_COMMAND_LENGTH);
+            print("\n", COLOR_INPUT);
+            print_prompt();
+        }
+        // e1000_poll_rx();
         char c = keyboard_get_char();
         if (c == '\0') {
             continue;

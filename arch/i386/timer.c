@@ -29,3 +29,9 @@ void timer_install() {
     // Install the handler
     irq_install_handler(0, timer_handler);
 }
+
+void sleep(uint32_t ms) {
+    uint32_t start_ticks = timer_ticks;
+    uint32_t ticks_to_wait = ms / 10;
+    while (timer_ticks < start_ticks + ticks_to_wait);
+}

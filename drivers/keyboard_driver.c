@@ -19,6 +19,7 @@ unsigned char kbd_us[128] = {
 char last_char = 0;
 static unsigned char last_scancode = 0;
 int ctrl_pressed = 0;
+int break_signal = 0;
 
 void keyboard_handler(struct regs *r) {
     unsigned char scancode;
@@ -38,8 +39,10 @@ void keyboard_handler(struct regs *r) {
             ctrl_pressed = 1;
         } else if (scancode < 128) {
             if (ctrl_pressed) {
-                // Send a special code for Ctrl + key
-                last_char = 0; // Don't send a normal character
+                if (kbd_us[scancode] == 'c') {
+                    break_signal = 1;
+                }
+                last_char = 0;
             } else {
                 char c = kbd_us[scancode];
                 last_char = c; // Store the character for keyboard_get_char()

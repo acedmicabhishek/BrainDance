@@ -88,6 +88,9 @@ void map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags) {
 
         page_table_t* new_pt_virt = (page_table_t*)(0xFFC00000 | (pd_idx << 12));
         memset(new_pt_virt, 0, sizeof(page_table_t));
+
+        // Flush the TLB for the new page table
+        asm volatile("invlpg (%0)" :: "r"((uint32_t)new_pt_virt) : "memory");
     }
 
     // Get the page table using the recursive mapping
