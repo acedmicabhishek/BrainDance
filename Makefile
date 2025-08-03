@@ -80,9 +80,13 @@ network/pci.o: network/pci.c include/pci.h
 kernel/BDkernel.o: kernel/BDkernel.c include/memcore.h include/idt.h include/isr.h include/keyboard.h
 	i686-elf-gcc $(CFLAGS) -c kernel/BDkernel.c -o kernel/BDkernel.o
 
+# Compile E1000 driver
+network/e1000.o: network/e1000.c include/e1000.h
+	i686-elf-gcc $(CFLAGS) -c network/e1000.c -o network/e1000.o
+
 # Link kernel
-BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o network/pci.o kernel/linker.ld
-	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o network/pci.o
+BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o network/pci.o network/e1000.o kernel/linker.ld
+	i686-elf-ld -m elf_i386 -T kernel/linker.ld -o BDkernel.elf kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memory/heap.o arch/i386/idt.o arch/i386/isr.o arch/i386/isr_asm.o arch/i386/load_idt.o arch/i386/pic.o arch/i386/irq.o arch/i386/irq_asm.o arch/i386/timer.o drivers/keyboard_driver.o drivers/ata/ata.o shell/shell.o fs/bdfs.o app/utils/cable.o app/utils/calculator.o exec/exec.o network/pci.o network/e1000.o
 	objcopy -O binary BDkernel.elf BDkernel.bin
 
 # Create bootable image
