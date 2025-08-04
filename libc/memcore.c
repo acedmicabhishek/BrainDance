@@ -6,7 +6,12 @@ static int cursor_row = 0;
 static int cursor_col = 0;
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
+#define SCROLLBACK_ROWS 100
 #define VGA_MEMORY ((char*)0xB8000)
+
+static char scrollback_buffer[SCROLLBACK_ROWS][VGA_WIDTH * 2];
+static int scrollback_row = 0;
+static int view_row = 0;
 
 typedef char* va_list;
 
@@ -78,28 +83,33 @@ int strncmp(const char* str1, const char* str2, size_t n) {
 void print_backspace() {
     if (cursor_col > 0) {
         cursor_col--;
-        int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
-        VGA_MEMORY[offset] = ' ';
-        VGA_MEMORY[offset + 1] = 0x07; // Default color
+        int offset = cursor_col * 2;
+        scrollback_buffer[cursor_row][offset] = ' ';
+        scrollback_buffer[cursor_row][offset + 1] = 0x07; // Default color
     } else if (cursor_row > 0) {
         cursor_row--;
         cursor_col = VGA_WIDTH - 1;
-        int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
-        VGA_MEMORY[offset] = ' ';
-        VGA_MEMORY[offset + 1] = 0x07; // Default color
+        int offset = cursor_col * 2;
+        scrollback_buffer[cursor_row][offset] = ' ';
+        scrollback_buffer[cursor_row][offset + 1] = 0x07; // Default color
     }
+    refresh_screen();
+    update_cursor();
 }
 
 void clear_screen(unsigned char color) {
-    for (int row = 0; row < VGA_HEIGHT; row++) {
+    for (int row = 0; row < SCROLLBACK_ROWS; row++) {
         for (int col = 0; col < VGA_WIDTH; col++) {
-            int offset = (row * VGA_WIDTH + col) * 2;
-            VGA_MEMORY[offset] = ' ';
-            VGA_MEMORY[offset + 1] = color;
+            int offset = col * 2;
+            scrollback_buffer[row][offset] = ' ';
+            scrollback_buffer[row][offset + 1] = color;
         }
     }
     cursor_row = 0;
     cursor_col = 0;
+    scrollback_row = 0;
+    view_row = 0;
+    refresh_screen();
 }
 
 void print_int(int number, unsigned char color) {
@@ -165,38 +175,22 @@ void print_hex(unsigned int number, unsigned char color) {
 
 void print(const char* msg, unsigned char color) {
     for (int i = 0; msg[i] != 0; ++i) {
-        if (msg[i] == '\n' || cursor_col >= VGA_WIDTH) {
-            cursor_row++;
-            cursor_col = 0;
-            if (msg[i] == '\n') continue;
-        }
-        if (cursor_row >= VGA_HEIGHT) scroll_up();
-
-        int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
-        VGA_MEMORY[offset] = msg[i];
-        VGA_MEMORY[offset + 1] = color;
-        cursor_col++;
+        print_char(msg[i], color);
     }
 }
 
 void scroll_up() {
-    for (int row = 1; row < VGA_HEIGHT; row++) {
-        for (int col = 0; col < VGA_WIDTH; col++) {
-            int from = (row * VGA_WIDTH + col) * 2;
-            int to = ((row - 1) * VGA_WIDTH + col) * 2;
-            VGA_MEMORY[to] = VGA_MEMORY[from];
-            VGA_MEMORY[to + 1] = VGA_MEMORY[from + 1];
-        }
+    if (view_row > 0) {
+        view_row--;
+        refresh_screen();
     }
+}
 
-    // Clear last line
-    for (int col = 0; col < VGA_WIDTH; col++) {
-        int offset = ((VGA_HEIGHT - 1) * VGA_WIDTH + col) * 2;
-        VGA_MEMORY[offset] = ' ';
-        VGA_MEMORY[offset + 1] = 0x07;
+void scroll_down() {
+    if (view_row < scrollback_row) {
+        view_row++;
+        refresh_screen();
     }
-
-    cursor_row = VGA_HEIGHT - 1;
 }
 
 void panic(const char* msg) {
@@ -217,20 +211,47 @@ void log(const char* tag, const char* msg) {
 }
 
 void print_char(char c, unsigned char color) {
-    if (c == '\n' || cursor_col >= VGA_WIDTH) {
-        cursor_row++;
+    if (c == '\n') {
         cursor_col = 0;
-        if (c == '\n') return;
+        cursor_row++;
+    } else {
+        int offset = cursor_col * 2;
+        scrollback_buffer[cursor_row][offset] = c;
+        scrollback_buffer[cursor_row][offset + 1] = color;
+        cursor_col++;
     }
 
-    if (cursor_row >= VGA_HEIGHT) {
-        scroll_up();
+    if (cursor_col >= VGA_WIDTH) {
+        cursor_col = 0;
+        cursor_row++;
     }
 
-    int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
-    VGA_MEMORY[offset] = c;
-    VGA_MEMORY[offset + 1] = color;
-    cursor_col++;
+    if (cursor_row > scrollback_row) {
+        scrollback_row = cursor_row;
+    }
+
+    if (cursor_row >= SCROLLBACK_ROWS) {
+        // Shift buffer up
+        for (int i = 1; i < SCROLLBACK_ROWS; i++) {
+            memcpy(scrollback_buffer[i - 1], scrollback_buffer[i], VGA_WIDTH * 2);
+        }
+        // Clear last line
+        for (int i = 0; i < VGA_WIDTH; i++) {
+            scrollback_buffer[SCROLLBACK_ROWS - 1][i * 2] = ' ';
+            scrollback_buffer[SCROLLBACK_ROWS - 1][i * 2 + 1] = 0x07;
+        }
+        cursor_row--;
+        scrollback_row--;
+        view_row--;
+    }
+
+    view_row = scrollback_row - VGA_HEIGHT + 1;
+    if (view_row < 0) {
+        view_row = 0;
+    }
+
+    refresh_screen();
+    update_cursor();
 }
 
 void println(const char* msg, unsigned char color) {
@@ -442,9 +463,22 @@ char* strncpy(char* dest, const char* src, unsigned int n) {
        if (x >= VGA_WIDTH || y >= VGA_HEIGHT) return;
        cursor_col = x;
        cursor_row = y;
-       uint16_t pos = y * VGA_WIDTH + x;
+       update_cursor();
+   }
+   
+   void update_cursor() {
+       uint16_t pos = (cursor_row - view_row) * VGA_WIDTH + cursor_col;
        outb(0x3D4, 0x0F);
        outb(0x3D5, (uint8_t)(pos & 0xFF));
        outb(0x3D4, 0x0E);
        outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
+   }
+   
+   void refresh_screen() {
+       for (int row = 0; row < VGA_HEIGHT; row++) {
+           int buffer_row = view_row + row;
+           if (buffer_row < SCROLLBACK_ROWS) {
+               memcpy(VGA_MEMORY + row * VGA_WIDTH * 2, scrollback_buffer[buffer_row], VGA_WIDTH * 2);
+           }
+       }
    }

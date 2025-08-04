@@ -1,5 +1,8 @@
 #pragma once
 
+#define _KEY_UP 0x48
+#define _KEY_DOWN 0x50
+
 extern int ctrl_pressed;
 extern unsigned char kbd_us[128];
 

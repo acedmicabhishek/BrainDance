@@ -32,4 +32,6 @@ void set_cursor(int x, int y);
 void panic(const char* msg);
 void log(const char* tag, const char* msg);
 void scroll_up();
+void scroll_down();
+void update_cursor();
 #endif

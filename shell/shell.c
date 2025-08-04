@@ -369,7 +369,11 @@ void start_shell() {
             continue;
         }
 
-        if (c == '\n') {
+        if (c == _KEY_UP) {
+            scroll_up();
+        } else if (c == _KEY_DOWN) {
+            scroll_down();
+        } else if (c == '\n') {
             command_buffer[command_len] = '\0'; // Null-terminate the command
             print("\n", COLOR_INPUT);
             process_command(command_buffer);

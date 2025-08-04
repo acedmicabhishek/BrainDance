@@ -36,6 +36,10 @@ void keyboard_handler(struct regs *r) {
         // Key pressed
         if (scancode == 0x1D) { // Ctrl press
             ctrl_pressed = 1;
+        } else if (scancode == 0x48) { // Up arrow
+            last_char = _KEY_UP;
+        } else if (scancode == 0x50) { // Down arrow
+            last_char = _KEY_DOWN;
         } else if (scancode < 128) {
             if (ctrl_pressed) {
                 // Send a special code for Ctrl + key
