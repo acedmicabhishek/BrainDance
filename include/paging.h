@@ -3,12 +3,12 @@
 
 #include "pmm.h"
 
-// Page Directory Entry flags
+
 #define PDE_PRESENT  0x1
 #define PDE_RW       0x2
 #define PDE_USER     0x4
 
-// Page Table Entry flags
+
 #define PTE_PRESENT  0x1
 #define PTE_RW       0x2
 #define PTE_USER     0x4

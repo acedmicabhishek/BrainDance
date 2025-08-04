@@ -2,14 +2,14 @@
 #include "include/memcore.h"
 #include "include/colors.h"
 
-// Function to determine the precedence of an operator
+
 int precedence(char op) {
     if (op == '+' || op == '-') return 1;
     if (op == '*' || op == '/') return 2;
     return 0;
 }
 
-// Function to apply an operator to two operands
+
 int apply_op(int a, int b, char op) {
     switch (op) {
         case '+': return a + b;
@@ -20,7 +20,7 @@ int apply_op(int a, int b, char op) {
     return 0;
 }
 
-// Function to evaluate a postfix expression
+
 int evaluate_postfix(char* postfix) {
     int stack[32];
     int top = -1;
@@ -35,12 +35,12 @@ int evaluate_postfix(char* postfix) {
                 num = num * 10 + (postfix[i] - '0');
                 i++;
             }
-            i--; // To offset the for-loop's increment
+            i--; 
             stack[++top] = num;
         } else {
             if (top < 1) {
-                // Error: not enough operands for operator
-                return 0; // Or some error code
+                
+                return 0; 
             }
             int val2 = stack[top--];
             int val1 = stack[top--];
@@ -48,13 +48,13 @@ int evaluate_postfix(char* postfix) {
         }
     }
     if (top != 0) {
-        // Error: malformed expression
+        
         return 0;
     }
     return stack[top];
 }
 
-// Shunting-yard algorithm to convert infix to postfix
+
 void infix_to_postfix(const char* infix, char* postfix) {
     char stack[32];
     int top = -1;
@@ -75,8 +75,8 @@ void infix_to_postfix(const char* infix, char* postfix) {
                 postfix[j++] = stack[top--];
                 postfix[j++] = ' ';
             }
-            if (top > -1) top--; // Pop '('
-        } else { // Operator
+            if (top > -1) top--; 
+        } else { 
             while (top > -1 && stack[top] != '(' && precedence(stack[top]) >= precedence(infix[i])) {
                 postfix[j++] = stack[top--];
                 postfix[j++] = ' ';

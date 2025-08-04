@@ -29,7 +29,6 @@ void editor_init(const char* filename) {
     strncpy(editor.filename, filename, sizeof(editor.filename) - 1);
     memset(editor.buffer, 0, sizeof(editor.buffer));
 
-    // Load file content if it exists
     uint32_t bytes_read;
     uint8_t file_content[EDITOR_ROWS * EDITOR_COLS];
     if (bdfs_read_file(filename, file_content, &bytes_read) == 0) {
@@ -122,33 +121,29 @@ int editor_process_keypress() {
     unsigned char scancode = keyboard_get_scancode();
 
     if (scancode) {
-        // Ctrl+S to save
         if (scancode == 0x1F && ctrl_pressed) {
             editor_save_file();
-            return 1; // Continue running
+            return 1;
         }
         
-        // Ctrl+Q to quit
         if (scancode == 0x10 && ctrl_pressed) {
-            // For now, we just exit. A real implementation would check for unsaved changes.
-            return 0; // Signal to quit
+             return 0;
         }
 
 
-        // Arrow keys for navigation
-        if (scancode == 0x48) { // Up arrow
+        if (scancode == 0x48) {
             if (editor.cy > 0) editor.cy--;
             return 1;
         }
-        if (scancode == 0x50) { // Down arrow
+        if (scancode == 0x50) { 
             if (editor.cy < EDITOR_ROWS - 2) editor.cy++;
             return 1;
         }
-        if (scancode == 0x4B) { // Left arrow
+        if (scancode == 0x4B) { 
             if (editor.cx > 0) editor.cx--;
             return 1;
         }
-        if (scancode == 0x4D) { // Right arrow
+        if (scancode == 0x4D) { 
             if (editor.cx < strlen(editor.buffer[editor.cy])) editor.cx++;
             return 1;
         }
@@ -171,7 +166,7 @@ int editor_process_keypress() {
             }
         }
     }
-    return 1; // Continue running
+    return 1; 
 }
 
 void cable_main(const char* filename) {

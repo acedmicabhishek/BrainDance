@@ -19,7 +19,6 @@
 static char command_buffer[MAX_COMMAND_LENGTH];
 static int command_len = 0;
 
-// Command handlers
 void help_command() {
     print("Available commands:\n", COLOR_SYSTEM);
     print("  help     - Display this help message\n", COLOR_SYSTEM);
@@ -60,13 +59,11 @@ void sysinfo_command() {
     kprintf("[sysinfo] Kernel Size: %d KB\n", kernel_size / 1024);
     kprintf("[sysinfo] Total RAM: %d MB\n", pmm_get_total_memory() / 1024 / 1024);
     kprintf("[sysinfo] Free RAM: %d MB\n", pmm_get_free_memory() / 1024 / 1024);
-    // kprintf("[sysinfo] Heap Usage: %d KB / %d KB\n", heap_get_usage() / 1024, (HEAP_END - HEAP_START) / 1024);
     kprintf("[sysinfo] Uptime: %d seconds\n", timer_ticks / 100);
     print("[sysinfo] Drivers: ATA, BDFS, CPU, E1000, Keyboard, Paging, PCI, PMM, Timer\n", COLOR_SYSTEM);
     print("[sysinfo] Shell User: V\n", COLOR_SYSTEM);
 }
 
-// Simple atoi implementation
 int atoi(const char* str) {
     int res = 0;
     for (int i = 0; str[i] != '\0'; ++i) {
@@ -105,7 +102,7 @@ int atoi(const char* str) {
    }
    
    void cat_command(const char* filename) {
-       uint8_t buffer[1024]; // 1KB buffer
+       uint8_t buffer[1024];
        uint32_t bytes_read;
        memset(buffer, 0, 1024);
        if (bdfs_read_file(filename, buffer, &bytes_read) == 0) {
@@ -230,12 +227,11 @@ void time_command() {
 
 void halt_command() {
     print("Halting system...\n", COLOR_SYSTEM);
-    asm volatile("hlt"); // Halt the CPU
+    asm volatile("hlt");
 }
 
 void reboot_command() {
     print("Rebooting system...\n", COLOR_SYSTEM);
-    // Using the keyboard controller to reset the system
     uint8_t good = 0x02;
     while (good & 0x02)
         good = inb(0x64);
@@ -244,7 +240,7 @@ void reboot_command() {
 
 void shutdown_command() {
     print("Shutting down system...\n", COLOR_SYSTEM);
-    outw(0x604, 0x2000); // QEMU specific shutdown
+    outw(0x604, 0x2000);
 }
 
 void pulse_command() {
@@ -255,7 +251,6 @@ void pulse_command() {
 
     print("System Vitals:\n", COLOR_SYSTEM);
 
-    // CPU Usage Bar
     print("  CPU Usage: [", COLOR_SYSTEM);
     int cpu_bar_width = 10;
     int cpu_filled = (cpu_usage * cpu_bar_width) / 100;
@@ -268,7 +263,6 @@ void pulse_command() {
     }
     kprintf("] %d%%\n", cpu_usage);
 
-    // RAM Usage Bar
     print("  RAM Usage: [", COLOR_SYSTEM);
     int mem_bar_width = 10;
     int mem_filled = (mem_usage * mem_bar_width) / 100;
@@ -289,7 +283,6 @@ void echo_command(const char* text) {
     }
 }
 
-// Function to process a command
 void process_command(const char* command) {
     char cmd[MAX_COMMAND_LENGTH];
     strcpy(cmd, command);
@@ -323,7 +316,7 @@ void process_command(const char* command) {
         }
     } else if (strcmp(token, "write") == 0) {
         char* filename = strtok(NULL, " ");
-        char* data = strtok(NULL, ""); // The rest of the string
+        char* data = strtok(NULL, "");
         if (filename && data) {
             write_command(filename, data);
         } else {
@@ -426,13 +419,13 @@ void start_shell() {
         } else if (c == _KEY_DOWN) {
             scroll_down();
         } else if (c == '\n') {
-            command_buffer[command_len] = '\0'; // Null-terminate the command
+            command_buffer[command_len] = '\0';
             print("\n", COLOR_INPUT);
             process_command(command_buffer);
             command_len = 0;
-            memset(command_buffer, 0, MAX_COMMAND_LENGTH); // Clear buffer
+            memset(command_buffer, 0, MAX_COMMAND_LENGTH);
             print_prompt();
-        } else if (c == '\b') { // Backspace
+        } else if (c == '\b') {
             if (command_len > 0) {
                 command_len--;
                 print_backspace();

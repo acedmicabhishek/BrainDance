@@ -85,13 +85,13 @@ void print_backspace() {
         cursor_col--;
         int offset = cursor_col * 2;
         scrollback_buffer[cursor_row][offset] = ' ';
-        scrollback_buffer[cursor_row][offset + 1] = 0x07; // Default color
+        scrollback_buffer[cursor_row][offset + 1] = 0x07; 
     } else if (cursor_row > 0) {
         cursor_row--;
         cursor_col = VGA_WIDTH - 1;
         int offset = cursor_col * 2;
         scrollback_buffer[cursor_row][offset] = ' ';
-        scrollback_buffer[cursor_row][offset + 1] = 0x07; // Default color
+        scrollback_buffer[cursor_row][offset + 1] = 0x07; 
     }
     refresh_screen();
     update_cursor();
@@ -113,7 +113,7 @@ void clear_screen(unsigned char color) {
 }
 
 void print_int(int number, unsigned char color) {
-    char buffer[12]; // Enough for 32-bit int: -2147483648
+    char buffer[12]; 
     int i = 0;
     int is_negative = 0;
 
@@ -133,7 +133,7 @@ void print_int(int number, unsigned char color) {
 
     if (is_negative) buffer[i++] = '-';
 
-    // Reverse the buffer
+    
     for (int j = i - 1; j >= 0; j--) {
         char c[2] = { buffer[j], 0 };
         print(c, color);
@@ -141,7 +141,7 @@ void print_int(int number, unsigned char color) {
 }
 
 void print_uint(unsigned int number, unsigned char color) {
-    char buffer[11]; // Enough for 32-bit unsigned int
+    char buffer[11]; 
     int i = 0;
 
     if (number == 0) {
@@ -154,7 +154,7 @@ void print_uint(unsigned int number, unsigned char color) {
         number /= 10;
     }
 
-    // Reverse the buffer
+    
     for (int j = i - 1; j >= 0; j--) {
         char c[2] = { buffer[j], 0 };
         print(c, color);
@@ -194,7 +194,7 @@ void scroll_down() {
 }
 
 void panic(const char* msg) {
-    clear_screen(0x4F);  // Red bg, white fg
+    clear_screen(0x4F);  
     print("!!! KERNEL PANIC !!!\n\n", 0x4F);
     print(msg, 0x4F);
     while (1) {
@@ -231,11 +231,11 @@ void print_char(char c, unsigned char color) {
     }
 
     if (cursor_row >= SCROLLBACK_ROWS) {
-        // Shift buffer up
+        
         for (int i = 1; i < SCROLLBACK_ROWS; i++) {
             memcpy(scrollback_buffer[i - 1], scrollback_buffer[i], VGA_WIDTH * 2);
         }
-        // Clear last line
+        
         for (int i = 0; i < VGA_WIDTH; i++) {
             scrollback_buffer[SCROLLBACK_ROWS - 1][i * 2] = ' ';
             scrollback_buffer[SCROLLBACK_ROWS - 1][i * 2 + 1] = 0x07;
@@ -290,7 +290,7 @@ void kprintf(const char* fmt, ...) {
                     break;
                 }
                 case 'c': {
-                    char c = (char)va_arg(args, int); // promote to int
+                    char c = (char)va_arg(args, int); 
                     print_char(c, 0x07);
                     break;
                 }
@@ -328,7 +328,7 @@ char* strcat(char* dest, const char* src) {
 
 static char *strtok_state = NULL;
 
-// Helper to check if a character is a delimiter
+
 static int is_delimiter(char c, const char* delimiters) {
     while (*delimiters) {
         if (c == *delimiters++) {
@@ -347,7 +347,7 @@ char* strtok(char* str, const char* delimiters) {
         return NULL;
     }
 
-    // Skip leading delimiters
+    
     char* token_start = strtok_state;
     while (is_delimiter(*token_start, delimiters)) {
         token_start++;
@@ -358,7 +358,7 @@ char* strtok(char* str, const char* delimiters) {
         return NULL;
     }
 
-    // Find the end of the token
+    
     char* token_end = token_start;
     while (*token_end && !is_delimiter(*token_end, delimiters)) {
         token_end++;
@@ -382,7 +382,7 @@ char* strncpy(char* dest, const char* src, unsigned int n) {
         *dest++ = *src++;
     }
 
-    // If we haven't filled n characters, pad with nulls
+    
     for ( ; i < n; i++) {
         *dest++ = '\0';
     }
@@ -402,7 +402,7 @@ char* strncpy(char* dest, const char* src, unsigned int n) {
        return strncmp(str + str_len - suffix_len, suffix, suffix_len) == 0;
    }
    
-   // A very basic snprintf that only handles %s, %c, and %d
+   
    int snprintf(char* str, unsigned int size, const char* format, ...) {
        va_list args;
        va_start(args, format);

@@ -41,7 +41,7 @@ bool e1000_init(uint8_t bus, uint8_t dev, uint8_t func) {
     if (bar0_raw & 1) return false;
 
     uint32_t mmio_base = bar0_raw & 0xFFFFFFF0;
-    // Map a larger region for MMIO
+    
     for (uint32_t i = 0; i < 0x10000; i += 0x1000) {
         map_page(mmio_base + i, mmio_base + i, PTE_PRESENT | PTE_RW);
     }
@@ -56,11 +56,11 @@ bool e1000_init(uint8_t bus, uint8_t dev, uint8_t func) {
     print_hex(status, 0x07);
     print("\n", 0x07);
 
-    // RX Ring Setup
+    
     rx_ring = alloc_aligned(sizeof(struct e1000_rx_desc) * RX_DESC_COUNT, 16);
     for (int i = 0; i < RX_DESC_COUNT; ++i) {
         void* phys_addr = pmm_alloc_block();
-        rx_buffers[i] = kmalloc(4096); // Allocate virtual space
+        rx_buffers[i] = kmalloc(4096); 
         map_page((uint32_t)phys_addr, (uint32_t)rx_buffers[i], PTE_PRESENT | PTE_RW);
         rx_ring[i].addr = (uint64_t)phys_addr;
         rx_ring[i].status = 0;
@@ -74,11 +74,11 @@ bool e1000_init(uint8_t bus, uint8_t dev, uint8_t func) {
     uint32_t rctl = RCTL_EN | RCTL_BAM | RCTL_SECRC;
     e1000_write(E1000_RCTL, rctl);
 
-    // TX Ring Setup
+    
     tx_ring = alloc_aligned(sizeof(struct e1000_tx_desc) * TX_DESC_COUNT, 16);
     for (int i = 0; i < TX_DESC_COUNT; ++i) {
         void* phys_addr = pmm_alloc_block();
-        tx_buffers[i] = kmalloc(4096); // Allocate virtual space
+        tx_buffers[i] = kmalloc(4096); 
         map_page((uint32_t)phys_addr, (uint32_t)tx_buffers[i], PTE_PRESENT | PTE_RW);
         tx_ring[i].addr = (uint64_t)phys_addr;
         tx_ring[i].cmd = 0;

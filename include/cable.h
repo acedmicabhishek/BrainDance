@@ -6,17 +6,17 @@
 
 #define EDITOR_ROWS 24
 #define EDITOR_COLS 80
-#define STATUS_BAR_COLOR 0x1F // White text on Blue background
+#define STATUS_BAR_COLOR 0x1F 
 
-// Represents the state of the editor
+
 typedef struct {
-    int cx, cy; // Cursor x and y position
+    int cx, cy; 
     char buffer[EDITOR_ROWS][EDITOR_COLS];
     char filename[32];
-    int dirty; // Flag to track if the file has been modified
+    int dirty; 
 } editor_state_t;
 
-// Function prototypes
+
 void cable_main(const char* filename);
 void editor_init(const char* filename);
 void editor_draw();
@@ -25,4 +25,4 @@ void editor_insert_char(char c);
 void editor_delete_char();
 void editor_save_file();
 
-#endif // CABLE_H
+#endif 

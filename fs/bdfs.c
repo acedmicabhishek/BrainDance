@@ -2,17 +2,14 @@
 #include "include/memcore.h"
 #include "include/colors.h"
 
-// In-memory storage for BDFS. The layout is:
-// - First BDFS_FILE_TABLE_SECTORS * 512 bytes: File table (with magic number)
-// - The rest: File data
-#define BDFS_DATA_SECTORS 64 // Space for file content
+#define BDFS_DATA_SECTORS 64 
 #define BDFS_TOTAL_SECTORS (BDFS_FILE_TABLE_SECTORS + BDFS_DATA_SECTORS)
 static uint8_t bdfs_storage[BDFS_TOTAL_SECTORS * 512];
 
 static bdfs_file_entry_t file_table[BDFS_MAX_FILES];
-static uint32_t current_dir_inode = 0; // Root directory is inode 0
+static uint32_t current_dir_inode = 0; 
 
-// Helper to find an entry (file or dir) in a specific directory
+
 static int find_entry_in_dir(const char* name, uint32_t parent_inode) {
     for (int i = 0; i < BDFS_MAX_FILES; i++) {
         if (file_table[i].name[0] != '\0' && file_table[i].parent_inode == parent_inode && strcmp(file_table[i].name, name) == 0) {
@@ -22,7 +19,7 @@ static int find_entry_in_dir(const char* name, uint32_t parent_inode) {
     return -1;
 }
 
-// Find a free entry in the file table
+
 static int find_free_entry() {
     for (int i = 0; i < BDFS_MAX_FILES; i++) {
         if (file_table[i].name[0] == '\0') {
@@ -32,7 +29,7 @@ static int find_free_entry() {
     return -1;
 }
 
-// Helper to create a directory entry without syncing
+
 static int bdfs_create_dir_entry(const char* dirname, uint32_t parent_inode) {
     if (strlen(dirname) >= BDFS_MAX_FILENAME_LENGTH) return -1;
     if (find_entry_in_dir(dirname, parent_inode) != -1) return -2;
@@ -43,27 +40,27 @@ static int bdfs_create_dir_entry(const char* dirname, uint32_t parent_inode) {
     strcpy(file_table[free_index].name, dirname);
     file_table[free_index].type = BDFS_FILE_TYPE_DIRECTORY;
     file_table[free_index].parent_inode = parent_inode;
-    file_table[free_index].start_sector = 0; // Not used for dirs
-    file_table[free_index].length = 0; // Not used for dirs
+    file_table[free_index].start_sector = 0; 
+    file_table[free_index].length = 0; 
     
     return free_index;
 }
 
 void bdfs_init() {
-    // The "disk" is now in memory. Let's check the magic number.
+    
     uint32_t* magic_ptr = (uint32_t*)bdfs_storage;
 
     if (*magic_ptr != BDFS_MAGIC) {
         kprintf("BDFS: No filesystem found, creating a new one in RAM.\n");
         memset(file_table, 0, sizeof(file_table));
         
-        // Create root directory at inode 0
+        
         strcpy(file_table[0].name, "/");
         file_table[0].type = BDFS_FILE_TYPE_DIRECTORY;
-        file_table[0].parent_inode = 0; // Root's parent is itself
+        file_table[0].parent_inode = 0; 
         file_table[0].length = 0;
 
-        // Create default directories
+        
         bdfs_create_dir_entry("soul", 0);
         bdfs_create_dir_entry("cortex", 0);
         int vault_inode = bdfs_create_dir_entry("vault", 0);
@@ -75,17 +72,17 @@ void bdfs_init() {
             bdfs_create_dir_entry("cypher", vault_inode);
         }
 
-        bdfs_sync_file_table(); // "Save" to RAM disk
+        bdfs_sync_file_table(); 
     } else {
-        // Filesystem exists in RAM, load it
+        
         memcpy(file_table, bdfs_storage + sizeof(uint32_t), sizeof(file_table));
     }
-    current_dir_inode = 0; // Start at the root
+    current_dir_inode = 0; 
 }
 
 void bdfs_sync_file_table() {
-    // "Sync" means writing the file table to our in-memory storage.
-    // The file table is stored at the beginning of our bdfs_storage.
+    
+    
     uint8_t* file_table_ptr = bdfs_storage;
     
     memset(file_table_ptr, 0, BDFS_FILE_TABLE_SECTORS * 512);
@@ -123,8 +120,8 @@ int bdfs_delete_file(const char* filename) {
     int file_index = find_entry_in_dir(filename, current_dir_inode);
     if (file_index == -1) return -1;
 
-    // TODO: If it's a directory, ensure it's empty first.
-    // For now, we just delete the entry.
+    
+    
     file_table[file_index].name[0] = '\0';
     bdfs_sync_file_table();
     return 0;
@@ -151,7 +148,7 @@ void bdfs_list_files() {
     for (int i = 0; i < BDFS_MAX_FILES; i++) {
         if (file_table[i].name[0] != '\0' && file_table[i].parent_inode == current_dir_inode) {
             if (file_table[i].type == BDFS_FILE_TYPE_DIRECTORY) {
-                uint8_t color = COLOR_DIR; // Default directory color
+                uint8_t color = COLOR_DIR; 
                 if (strcmp(file_table[i].name, "soul") == 0) color = COLOR_DIR_SOUL;
                 else if (strcmp(file_table[i].name, "cortex") == 0) color = COLOR_DIR_CORTEX;
                 else if (strcmp(file_table[i].name, "vault") == 0) color = COLOR_DIR_VAULT;
@@ -175,19 +172,19 @@ void bdfs_list_files() {
 
 int bdfs_chdir(const char* dirname) {
     if (strcmp(dirname, ".") == 0) {
-        return 0; // Stay in the same directory
+        return 0; 
     }
     if (strcmp(dirname, "..") == 0) {
-        if (current_dir_inode != 0) { // Can't go up from root
+        if (current_dir_inode != 0) { 
             current_dir_inode = file_table[current_dir_inode].parent_inode;
         }
         return 0;
     }
 
     int dir_index = find_entry_in_dir(dirname, current_dir_inode);
-    if (dir_index == -1) return -1; // Not found
+    if (dir_index == -1) return -1; 
 
-    if (file_table[dir_index].type != BDFS_FILE_TYPE_DIRECTORY) return -2; // Not a directory
+    if (file_table[dir_index].type != BDFS_FILE_TYPE_DIRECTORY) return -2; 
 
     current_dir_inode = dir_index;
     return 0;
@@ -202,7 +199,7 @@ void bdfs_get_current_dir_name(char* buffer) {
 }
 
 static uint32_t find_free_sector() {
-    uint32_t last_sector = 0; // Start from 0 for in-memory model
+    uint32_t last_sector = 0; 
     for (int i = 0; i < BDFS_MAX_FILES; i++) {
         if (file_table[i].name[0] != '\0' && file_table[i].type == BDFS_FILE_TYPE_FILE) {
             uint32_t file_end_sector = file_table[i].start_sector + (file_table[i].length + 511) / 512;
@@ -226,23 +223,23 @@ int bdfs_write_file(const char* filename, const uint8_t* buffer, uint32_t bytes_
 
     if (file->length == 0) {
         start_sector = find_free_sector();
-        // Check if there is enough space in our RAM disk for the new file.
+        
         if (start_sector + needed_sectors > BDFS_DATA_SECTORS) {
-            return -2; // Not enough space
+            return -2; 
         }
         file->start_sector = start_sector;
     } else {
         start_sector = file->start_sector;
         uint32_t allocated_sectors = (file->length + 511) / 512;
         if (needed_sectors > allocated_sectors) {
-            // This simple FS does not support reallocating/growing files.
+            
             return -2;
         }
     }
 
     file->length = bytes_to_write;
 
-    // Write data to our in-memory storage.
+    
     uint32_t offset = start_sector * 512;
     memcpy(&bdfs_storage[BDFS_FILE_TABLE_SECTORS * 512 + offset], buffer, bytes_to_write);
 
@@ -254,7 +251,7 @@ int bdfs_read_file(const char* filename, uint8_t* buffer, uint32_t* bytes_read) 
     int file_index = find_entry_in_dir(filename, current_dir_inode);
     if (file_index == -1) return -1;
 
-    if (file_table[file_index].type != BDFS_FILE_TYPE_FILE) return -2; // Cannot read a directory
+    if (file_table[file_index].type != BDFS_FILE_TYPE_FILE) return -2; 
 
     bdfs_file_entry_t* file = &file_table[file_index];
     *bytes_read = file->length;

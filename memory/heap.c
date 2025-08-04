@@ -4,7 +4,7 @@ static uint8_t* heap_ptr = (uint8_t*)HEAP_START;
 
 void* kmalloc(uint32_t size) {
     if ((uint32_t)heap_ptr + size > HEAP_END) {
-        return 0; // Out of heap space
+        return 0;
     }
 
     void* new_alloc = heap_ptr;
@@ -25,7 +25,5 @@ void* alloc_aligned(uint32_t size, uint32_t alignment) {
 }
 
 void kfree(void* ptr) {
-    // A bump allocator doesn't really have a "free"
-    // but we can add a stub for API compatibility.
-    (void)ptr; // Avoid unused parameter warning
+    (void)ptr;
 }

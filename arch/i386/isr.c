@@ -22,7 +22,7 @@ void isr_handler(regs_t *r) {
 }
 
 void isr_install() {
-    // Clear all interrupt handlers
+    
     for (int i = 0; i < 256; i++) {
         interrupt_handlers[i] = 0;
     }

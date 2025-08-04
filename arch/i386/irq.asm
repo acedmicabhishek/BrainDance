@@ -1,5 +1,4 @@
 [bits 32]
-
 %macro IRQ 2
 global irq%1
 irq%1:
@@ -8,11 +7,8 @@ irq%1:
     push byte %2
     jmp irq_common_stub
 %endmacro
-
 section .text
-
 extern irq_handler
-
 irq_common_stub:
     pusha
     push ds
@@ -37,7 +33,6 @@ irq_common_stub:
     add esp, 8
     sti
     iret
-
 IRQ 0, 32
 IRQ 1, 33
 IRQ 2, 34

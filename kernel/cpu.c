@@ -5,7 +5,7 @@ static uint32_t idle_ticks = 0;
 static uint32_t total_ticks = 0;
 
 void cpu_init() {
-    // Nothing to do here for now bitch
+    
 }
 
 void cpu_idle() {

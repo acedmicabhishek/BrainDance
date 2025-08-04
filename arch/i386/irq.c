@@ -52,7 +52,7 @@ void irq_install() {
     idt_set_gate(46, (unsigned)irq14);
     idt_set_gate(47, (unsigned)irq15);
 
-    // Enable all IRQs
+    
     outb(0x21, 0x00);
     outb(0xA1, 0x00);
 }
