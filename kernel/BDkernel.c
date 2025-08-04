@@ -16,6 +16,7 @@ extern char _stack_end;
 #include "include/bdfs.h"
 #include "include/ata.h"
 #include "include/pci.h"
+#include "include/cpu.h"
 
 // Define the RAM disk base address
 #define RAMDISK_BASE 0x200000
@@ -86,6 +87,9 @@ void kernel_main() {
 
     // Scan for PCI devices
     pci_scan_all();
+
+    // Initialize CPU usage monitoring
+    cpu_init();
 
     // Start the shell
     start_shell();

@@ -10,6 +10,7 @@
 #include "include/exec.h"
 #include "include/calculator.h"
 #include "include/ports.h"
+#include "include/cpu.h"
 
 #define PROMPT "BD> "
 #define MAX_COMMAND_LENGTH 256
@@ -39,6 +40,7 @@ void help_command() {
     print("  cd       - Change directory\n", COLOR_SYSTEM);
     print("  sysinfo  - Display system information\n", COLOR_SYSTEM);
     print("  calc     - Evaluate a mathematical expression\n", COLOR_SYSTEM);
+    print("  pulse    - Show CPU and memory usage\n", COLOR_SYSTEM);
 }
 
 void sysinfo_command() {
@@ -217,6 +219,17 @@ void shutdown_command() {
     outw(0x604, 0x2000); // QEMU specific shutdown
 }
 
+void pulse_command() {
+    uint32_t free_mem = pmm_get_free_memory() / 1024 / 1024;
+    uint32_t total_mem = pmm_get_total_memory() / 1024 / 1024;
+    int mem_usage = ((total_mem - free_mem) * 100) / total_mem;
+    int cpu_usage = cpu_get_usage();
+
+    print("System Vitals:\n", COLOR_SYSTEM);
+    kprintf("  CPU Usage: %d%%\n", cpu_usage);
+    kprintf("  Mem Usage: %d%% (%d/%d MB)\n", mem_usage, total_mem - free_mem, total_mem);
+}
+
 void echo_command(const char* text) {
     if (text) {
         print(text, COLOR_INPUT);
@@ -318,7 +331,9 @@ void process_command(const char* command) {
        } else {
            print("Usage: calc <expression>\n", COLOR_ERROR);
        }
-   } else if (strlen(command) > 0) {
+    } else if (strcmp(token, "pulse") == 0) {
+        pulse_command();
+    } else if (strlen(command) > 0) {
        if (ends_with(command, ".bdx")) {
            if (execute_bdx(command) != 0) {
                print("Error executing ", COLOR_ERROR);
@@ -346,6 +361,7 @@ void start_shell() {
     while (1) {
         char c = keyboard_get_char();
         if (c == '\0') {
+            cpu_idle();
             continue;
         }
 

@@ -2,15 +2,13 @@
 #include "include/irq.h"
 #include "include/ports.h"
 #include "include/memcore.h"
+#include "include/cpu.h"
 
 unsigned int timer_ticks = 0;
 
 void timer_handler(struct regs *r) {
     timer_ticks++;
-
-    if (timer_ticks % 100 == 0) {
-        // print("One second has passed\n", 0x02);
-    }
+    cpu_tick();
 }
 
 void timer_install() {
