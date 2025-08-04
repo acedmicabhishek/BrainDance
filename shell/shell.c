@@ -43,6 +43,13 @@ void help_command() {
     print("  calc     - Evaluate a mathematical expression\n", COLOR_SYSTEM);
     print("  pulse    - Show CPU and memory usage\n", COLOR_SYSTEM);
     print("  chrome   - List connected PCI devices\n", COLOR_SYSTEM);
+    print("  applist  - List available applications\n", COLOR_SYSTEM);
+}
+
+void applist_command() {
+    print("Available applications:\n", COLOR_SYSTEM);
+    print("  calc     - A simple calculator\n", COLOR_SYSTEM);
+    print("  cable    - A simple text editor\n", COLOR_SYSTEM);
 }
 
 void sysinfo_command() {
@@ -75,7 +82,7 @@ int atoi(const char* str) {
    
    void touch_command(const char* filename) {
        if (bdfs_create_file(filename) == 0) {
-           print("✔ File '", COLOR_SUCCESS);
+           print("File '", COLOR_SUCCESS);
            print(filename, COLOR_SUCCESS);
            print("' created.\n", COLOR_SUCCESS);
        } else {
@@ -337,6 +344,8 @@ void process_command(const char* command) {
         pulse_command();
     } else if (strcmp(token, "chrome") == 0) {
         pci_list_devices();
+    } else if (strcmp(token, "applist") == 0) {
+        applist_command();
     } else if (strlen(command) > 0) {
        if (ends_with(command, ".bdx")) {
            if (execute_bdx(command) != 0) {
