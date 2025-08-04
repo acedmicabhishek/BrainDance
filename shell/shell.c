@@ -203,10 +203,29 @@ void meminfo_command() {
     print(" MB\n", COLOR_SYSTEM);
 }
 
+
 void time_command() {
+    uint32_t total_seconds = timer_ticks / 100;
+    uint32_t hours = total_seconds / 3600;
+    uint32_t minutes = (total_seconds % 3600) / 60;
+    uint32_t seconds = total_seconds % 60;
+
     print("Uptime: ", COLOR_SYSTEM);
-    print_int(timer_ticks / 100, COLOR_SYSTEM);
-    print(" seconds\n", COLOR_SYSTEM);
+    if (hours < 10) {
+        print("0", COLOR_SYSTEM);
+    }
+    print_int(hours, COLOR_SYSTEM);
+    print(":", COLOR_SYSTEM);
+    if (minutes < 10) {
+        print("0", COLOR_SYSTEM);
+    }
+    print_int(minutes, COLOR_SYSTEM);
+    print(":", COLOR_SYSTEM);
+    if (seconds < 10) {
+        print("0", COLOR_SYSTEM);
+    }
+    print_int(seconds, COLOR_SYSTEM);
+    print("\n", COLOR_SYSTEM);
 }
 
 void halt_command() {
@@ -235,8 +254,32 @@ void pulse_command() {
     int cpu_usage = cpu_get_usage();
 
     print("System Vitals:\n", COLOR_SYSTEM);
-    kprintf("  CPU Usage: %d%%\n", cpu_usage);
-    kprintf("  Mem Usage: %d%% (%d/%d MB)\n", mem_usage, total_mem - free_mem, total_mem);
+
+    // CPU Usage Bar
+    print("  CPU Usage: [", COLOR_SYSTEM);
+    int cpu_bar_width = 10;
+    int cpu_filled = (cpu_usage * cpu_bar_width) / 100;
+    for (int i = 0; i < cpu_bar_width; i++) {
+        if (i < cpu_filled) {
+            print("#", COLOR_SUCCESS);
+        } else {
+            print("-", COLOR_SYSTEM);
+        }
+    }
+    kprintf("] %d%%\n", cpu_usage);
+
+    // RAM Usage Bar
+    print("  RAM Usage: [", COLOR_SYSTEM);
+    int mem_bar_width = 10;
+    int mem_filled = (mem_usage * mem_bar_width) / 100;
+    for (int i = 0; i < mem_bar_width; i++) {
+        if (i < mem_filled) {
+            print("#", COLOR_SUCCESS);
+        } else {
+            print("-", COLOR_SYSTEM);
+        }
+    }
+    kprintf("] %d%% (%d/%d MB)\n", mem_usage, total_mem - free_mem, total_mem);
 }
 
 void echo_command(const char* text) {
