@@ -9,6 +9,7 @@
 #include "include/cable.h"
 #include "include/exec.h"
 #include "include/calculator.h"
+#include "include/ports.h"
 
 #define PROMPT "BD> "
 #define MAX_COMMAND_LENGTH 256
@@ -24,6 +25,8 @@ void help_command() {
     print("  meminfo  - Show PMM statistics\n", COLOR_SYSTEM);
     print("  time     - Show system uptime\n", COLOR_SYSTEM);
     print("  halt     - Halt the system (requires QEMU to be closed manually)\n", COLOR_SYSTEM);
+    print("  reboot   - Reboot the system\n", COLOR_SYSTEM);
+    print("  shutdown - Shutdown the system\n", COLOR_SYSTEM);
     print("  ls       - List files\n", COLOR_SYSTEM);
     print("  touch    - Create a file\n", COLOR_SYSTEM);
     print("  write    - Write to a file\n", COLOR_SYSTEM);
@@ -200,6 +203,20 @@ void halt_command() {
     asm volatile("hlt"); // Halt the CPU
 }
 
+void reboot_command() {
+    print("Rebooting system...\n", COLOR_SYSTEM);
+    // Using the keyboard controller to reset the system
+    uint8_t good = 0x02;
+    while (good & 0x02)
+        good = inb(0x64);
+    outb(0x64, 0xFE);
+}
+
+void shutdown_command() {
+    print("Shutting down system...\n", COLOR_SYSTEM);
+    outw(0x604, 0x2000); // QEMU specific shutdown
+}
+
 void echo_command(const char* text) {
     if (text) {
         print(text, COLOR_INPUT);
@@ -224,6 +241,10 @@ void process_command(const char* command) {
         time_command();
     } else if (strcmp(token, "halt") == 0) {
         halt_command();
+    } else if (strcmp(token, "reboot") == 0) {
+        reboot_command();
+    } else if (strcmp(token, "shutdown") == 0) {
+        shutdown_command();
     } else if (strcmp(token, "sysinfo") == 0) {
         sysinfo_command();
     } else if (strcmp(token, "ls") == 0) {
