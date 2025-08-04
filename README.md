@@ -122,6 +122,3 @@ For a complete and detailed explanation of the OS architecture, components, and 
 - USB WiFi NIC driver (very advanced)
 
 ---
-
-account check for git
-test2

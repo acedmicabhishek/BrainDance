@@ -11,6 +11,7 @@
 #include "include/calculator.h"
 #include "include/ports.h"
 #include "include/cpu.h"
+#include "include/pci.h"
 
 #define PROMPT "BD> "
 #define MAX_COMMAND_LENGTH 256
@@ -41,6 +42,7 @@ void help_command() {
     print("  sysinfo  - Display system information\n", COLOR_SYSTEM);
     print("  calc     - Evaluate a mathematical expression\n", COLOR_SYSTEM);
     print("  pulse    - Show CPU and memory usage\n", COLOR_SYSTEM);
+    print("  chrome   - List connected PCI devices\n", COLOR_SYSTEM);
 }
 
 void sysinfo_command() {
@@ -53,7 +55,7 @@ void sysinfo_command() {
     kprintf("[sysinfo] Free RAM: %d MB\n", pmm_get_free_memory() / 1024 / 1024);
     // kprintf("[sysinfo] Heap Usage: %d KB / %d KB\n", heap_get_usage() / 1024, (HEAP_END - HEAP_START) / 1024);
     kprintf("[sysinfo] Uptime: %d seconds\n", timer_ticks / 100);
-    print("[sysinfo] Drivers: ATA, Keyboard, Timer\n", COLOR_SYSTEM);
+    print("[sysinfo] Drivers: ATA, BDFS, CPU, E1000, Keyboard, Paging, PCI, PMM, Timer\n", COLOR_SYSTEM);
     print("[sysinfo] Shell User: V\n", COLOR_SYSTEM);
 }
 
@@ -333,6 +335,8 @@ void process_command(const char* command) {
        }
     } else if (strcmp(token, "pulse") == 0) {
         pulse_command();
+    } else if (strcmp(token, "chrome") == 0) {
+        pci_list_devices();
     } else if (strlen(command) > 0) {
        if (ends_with(command, ".bdx")) {
            if (execute_bdx(command) != 0) {

@@ -44,3 +44,24 @@ void pci_scan_all() {
         }
     }
 }
+
+void pci_list_devices() {
+    print("PCI Devices:\n", 0x07);
+    for (uint16_t bus = 0; bus < 256; ++bus) {
+        for (uint8_t dev = 0; dev < 32; ++dev) {
+            for (uint8_t func = 0; func < 8; ++func) {
+                uint32_t vendor_device = pci_config_read(bus, dev, func, 0x00);
+                uint16_t vendor_id = vendor_device & 0xFFFF;
+
+                if (vendor_id == 0xFFFF) continue;
+
+                uint32_t class_code = pci_config_read(bus, dev, func, 0x08);
+                uint8_t class_id = (class_code >> 24) & 0xFF;
+                uint8_t subclass = (class_code >> 16) & 0xFF;
+
+                kprintf("  Bus %d, Dev %d, Func %d: Vendor %x, Class %x, Subclass %x\n",
+                        bus, dev, func, vendor_id, class_id, subclass);
+            }
+        }
+    }
+}
