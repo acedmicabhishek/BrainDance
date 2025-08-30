@@ -1,4 +1,5 @@
 # BrainDance
+![BrainDance](readme/braindance.gif)
 An OS from Scratch aiming for cyberNet.
 
 BrainDance is an educational operating system built from scratch. This project documents the journey of creating a simple OS, covering its architecture, components, and functionality from the bootloader to a basic shell.
