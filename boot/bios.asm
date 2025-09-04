@@ -3,7 +3,6 @@ bits 16
 
 jmp main
 
-; BIOS Parameter Block (BPB)
 times 3 - ($ - $$) db 0
 oem_identifier:     db "BRAINBLD"
 bytes_per_sector:   dw 512
@@ -23,7 +22,7 @@ reserved:           db 0
 signature:          db 0x29
 volume_id:          dd 0
 volume_label:       db "BRAINDANCE"
-fs_type:            db "FAT12"
+fs_type:            db "FAT12   "
 
 main:
     mov ax, 0
@@ -32,41 +31,51 @@ main:
     mov ss, ax
     mov sp, 0x7c00
 
-    ; Set video mode to text 80x25
+    ; Silent Countdown
+    mov cx, 3
+countdown_loop:
+    push cx
+    mov ah, 0x86
+    mov cx, 0x0f
+    mov dx, 0x4240
+    int 0x15
+    mov ah, 0x01
+    int 0x16
+    jz no_key
+    mov ah, 0x00
+    int 0x16
+    cmp al, '2'
+    je enter_bios_shell
+no_key:
+    pop cx
+    loop countdown_loop
+    jmp boot_stage_2
+
+enter_bios_shell:
     mov ah, 0x00
     mov al, 0x03
     int 0x10
-
-    call display_welcome
-
+    call clear_screen
+    call show_info
 shell_loop:
     mov si, prompt
-    call print_string
-
-    ; Read command
-    mov di, command_buffer
-read_char:
+    call print
+    mov di, cmd_buf
+read_loop:
     mov ah, 0x00
     int 0x16
-
-    cmp al, 0x0d ; Enter
-    je process_command
-
-    cmp al, 0x08 ; Backspace
-    je handle_backspace
-
-    ; Echo character
+    cmp al, 0x0d
+    je process_cmd
+    cmp al, 0x08
+    je backspace
     mov ah, 0x0e
     int 0x10
-
     stosb
-    jmp read_char
-
-handle_backspace:
-    cmp di, command_buffer
-    je read_char
+    jmp read_loop
+backspace:
+    cmp di, cmd_buf
+    je read_loop
     dec di
-    mov byte [di], 0
     mov ah, 0x0e
     mov al, 0x08
     int 0x10
@@ -74,105 +83,69 @@ handle_backspace:
     int 0x10
     mov al, 0x08
     int 0x10
-    jmp read_char
+    jmp read_loop
 
-process_command:
-    mov byte [di], 0 ; Null-terminate the command
-    call print_newline
-
-    ; Compare with "start"
-    mov si, command_buffer
+process_cmd:
+    mov byte [di], 0
+    call newline
+    mov si, cmd_buf
     mov di, start_cmd
-    mov cx, 5 ; 'start' length + null
+    mov cx, 5
     repe cmpsb
-    je .start
-
-    ; Compare with "res"
-    mov si, command_buffer
+    je boot_stage_2
+    mov si, cmd_buf
     mov di, res_cmd
-    mov cx, 4 ; 'res' length + null
+    mov cx, 4
     repe cmpsb
-    je .res
-
-    ; Compare with "help"
-    mov si, command_buffer
-    mov di, help_cmd
-    mov cx, 5 ; 'help' length + null
-    repe cmpsb
-    je .help
-
-    ; Compare with "info"
-    mov si, command_buffer
-    mov di, info_cmd
-    mov cx, 5 ; 'info' length + null
-    repe cmpsb
-    je .info
-
-    ; Compare with "cls"
-    mov si, command_buffer
-    mov di, cls_cmd
-    mov cx, 4 ; 'cls' length + null
-    repe cmpsb
-    je .cls
-
-    mov si, unknown_cmd_msg
-    call print_string
+    je res_handler
+    mov si, unknown_cmd
+    call print
     jmp shell_loop
 
-.start:
-    ; Load the second stage bootloader from disk
-    mov ah, 0x02      ; Function 02h: Read Sectors
-    mov al, 1         ; Number of sectors to read
-    mov ch, 0         ; Cylinder number
-    mov cl, 2         ; Starting sector number
-    mov dh, 0         ; Head number
-    mov dl, 0x80      ; Drive number
-    mov bx, 0x7e00    ; Destination buffer
-    int 0x13          ; Call BIOS disk services
-    jc .start_fail    ; If carry flag is set, it failed
-
+boot_stage_2:
+    mov ah, 0x02
+    mov al, 1
+    mov cl, 2
+    mov ch, 0
+    mov dh, 0
+    mov dl, 0x80
+    mov bx, 0x7e00
+    int 0x13
+    jc boot_fail
     jmp 0x7e00
-
-.start_fail:
+boot_fail:
     mov si, boot_fail_msg
-    call print_string
+    call print
     jmp shell_loop
-
-.res:
+res_handler:
     mov si, res_msg
-    call print_string
+    call print
     jmp shell_loop
 
-.help:
-    mov si, help_msg
-    call print_string
-    jmp shell_loop
-
-.info:
-    mov si, info_msg
-    call print_string
-    jmp shell_loop
-
-.cls:
-    call display_welcome
-    jmp shell_loop
-
-display_welcome:
-    call clear_screen
-    mov si, welcome_msg
-    call print_string
+show_info:
+    mov si, info_msg_vga
+    call print
+    mov ah, 0x0f
+    int 0x10
+    push ax
+    mov al, ah
+    call print_dec
+    mov si, info_msg_mode
+    call print
+    pop ax
+    call print_hex
+    call newline
     ret
 
 clear_screen:
     mov ah, 0x06
-    mov al, 0
-    mov bh, 0x07
-    mov cx, 0
+    xor al, al
+    xor cx, cx
     mov dx, 0x184f
+    mov bh, 0x07
     int 0x10
     ret
-
-print_string:
+print:
     mov ah, 0x0e
 .loop:
     lodsb
@@ -182,28 +155,54 @@ print_string:
     jmp .loop
 .done:
     ret
-
-print_newline:
+newline:
     mov ah, 0x0e
     mov al, 0x0d
     int 0x10
     mov al, 0x0a
     int 0x10
     ret
+print_hex:
+    mov cl, al
+    mov ah, 0x0e
+    shr al, 4
+    add al, '0'
+    cmp al, '9'
+    jle ph_1
+    add al, 7
+ph_1:
+    int 0x10
+    mov al, cl
+    and al, 0x0f
+    add al, '0'
+    cmp al, '9'
+    jle ph_2
+    add al, 7
+ph_2:
+    int 0x10
+    ret
+print_dec:
+    mov ah, 0
+    mov dl, 10
+    div dl
+    add ax, '00'
+    mov dx, ax
+    mov ah, 0x0e
+    mov al, dl
+    int 0x10
+    mov al, dh
+    int 0x10
+    ret
 
-welcome_msg: db 'BD-BIOS', 0x0d, 0x0a, 0
 prompt: db '> ', 0
-command_buffer: times 32 db 0
+cmd_buf: times 16 db 0
 start_cmd: db 'start', 0
-res_cmd: db 'res', 0
-help_cmd: db 'help', 0
-info_cmd: db 'info', 0
-cls_cmd: db 'cls', 0
-unknown_cmd_msg: db 'Unknown cmd', 0x0d, 0x0a, 0
-res_msg: db 'Not implemented', 0x0d, 0x0a, 0
-help_msg: db 'start, res, info, cls', 0x0d, 0x0a, 0
-info_msg: db 'BD-BIOS v1.0, 80x25 Text', 0x0d, 0x0a, 0
-boot_fail_msg: db 'Boot failed!', 0x0d, 0x0a, 0
+res_cmd:   db 'res', 0
+unknown_cmd: db '?', 0x0d, 0x0a, 0
+res_msg: db 'n/a', 0x0d, 0x0a, 0
+info_msg_vga: db 'VGA: ', 0
+info_msg_mode: db 'x25 Mode:0x', 0
+boot_fail_msg: db '!', 0x0d, 0x0a, 0
 
 times 510 - ($ - $$) db 0
 dw 0xaa55
