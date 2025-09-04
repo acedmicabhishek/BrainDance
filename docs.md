@@ -4,18 +4,32 @@ This document provides a detailed explanation of the BrainDance operating system
 
 ## 1. Boot Process
 
-The boot process begins with the BIOS loading and executing our bootloader, `boot/BDbootloader.asm`. This bootloader operates in **16-bit real mode** and its primary goal is to transition the system to **32-bit protected mode** so the C kernel can run.
+The boot process is now a two-stage process, starting with an interactive BIOS shell.
 
-### Key Responsibilities:
-- **Initial Setup:** Disables interrupts (`cli`) and sets up segment registers (`ds`, `es`, `ss`) to 0.
-- **E820 Memory Map:** Reads the system's memory map using the BIOS `0xE820` interrupt and stores it at address `0x1000`. This map is crucial for the Physical Memory Manager (PMM).
-- **Kernel Loading:** Uses BIOS interrupt `0x13` to read 128 sectors (64KB) of the kernel from the disk into memory at address `0x8000`.
+### Stage 1: BIOS Shell (`boot/bios.asm`)
+The boot process begins with the BIOS loading and executing our first-stage bootloader, `boot/bios.asm`. This stage operates in **16-bit real mode** and presents the user with a simple, interactive command shell.
+
+#### Key Responsibilities:
+- **Initial Setup:** Sets up segment registers and initializes the VGA text mode.
+- **Interactive Shell:** Provides a command prompt where the user can issue commands.
+  - `help`: Lists available commands.
+  - `info`: Displays basic BIOS and system information.
+  - `cls`: Clears the screen.
+  - `start`: Proceeds to the second stage of the boot process.
+- **Loading Stage 2:** When the `start` command is executed, this bootloader reads the second sector of the disk into memory at `0x7e00` and jumps to it.
+
+### Stage 2: Kernel Loader (`boot/BDbootloader.asm`)
+The second-stage bootloader is responsible for preparing the system for the C kernel and loading it into memory.
+
+#### Key Responsibilities:
+- **E820 Memory Map:** Reads the system's memory map using the BIOS `0xE820` interrupt and stores it at address `0x1000`.
+- **Kernel Loading:** Uses BIOS interrupt `0x13` to read 128 sectors (64KB) of the kernel from the disk (starting at sector 3) into memory at address `0x8000`.
 - **Enable A20 Line:** Activates the A20 gate to allow access to memory above 1MB.
 - **Enter Protected Mode:**
-    1.  Loads the Global Descriptor Table (GDT) using the `lgdt` instruction. The GDT defines memory segments for code and data.
+    1.  Loads the Global Descriptor Table (GDT).
     2.  Sets the Protection Enable (PE) bit in the `CR0` register.
-    3.  Performs a far jump to the 32-bit code segment to flush the CPU pipeline.
-- **Kernel Relocation:** Copies the kernel from its temporary location at `0x8000` to its final destination at `0x100000` (1MB), as defined in the linker script.
+    3.  Performs a far jump to the 32-bit code segment.
+- **Kernel Relocation:** Copies the kernel from `0x8000` to its final destination at `0x100000` (1MB).
 - **Jump to Kernel:** Calls the `kernel_main` function at `0x100000`, transferring control to our 32-bit C kernel.
 
 ## 2. Kernel
@@ -181,5 +195,6 @@ The `Makefile` automates the build process, compiling all C and assembly files, 
 
 | **Sector(s)** | **Component** | **Description** |
 | ------------- | ------------- | --------------- |
-| 0             | Bootloader    | The Master Boot Record (MBR). |
-| 1 - 128       | Kernel        | The kernel binary. |
+| 0             | Stage 1 Bootloader (BIOS Shell) | The Master Boot Record (MBR). |
+| 1             | Stage 2 Bootloader (Kernel Loader) | The second stage of the bootloader. |
+| 2 - 129       | Kernel        | The kernel binary. |

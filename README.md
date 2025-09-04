@@ -6,7 +6,7 @@ BrainDance is an educational operating system built from scratch. This project d
 
 ## Features
 
-*   **Bootloader**: A 16-bit assembly bootloader that transitions the CPU to 32-bit protected mode.
+*   **Bootloader**: A two-stage 16-bit assembly bootloader featuring an interactive BIOS shell. It transitions the CPU to 32-bit protected mode.
 *   **Kernel**: A C-based kernel that initializes core systems like the IDT, ISRs, IRQs, and a PIT timer.
 *   **Memory Management**: Includes both paging for virtual memory and a simple bump allocator for kernel heap management.
 *   **Drivers**: Supports PS/2 keyboard input and ATA (IDE) hard drive for storage.
@@ -26,14 +26,14 @@ The project uses a `Makefile` to automate the build process.
 
 2.  **Run with QEMU:**
     ```sh
-    qemu-system-i386 -hda bdos.img
+    qemu-system-i386 -drive format=raw,file=bdos.img
     ```
 
 ## Documentation
 
 For a complete and detailed explanation of the OS architecture, components, and functionality, please see the full documentation in [`docs.md`](docs.md).
 
-# 📦 Upcoming Features / Modules
+# Upcoming Features / Modules
 
 ## PHASE 1: Bare-Metal Networking Foundation
 

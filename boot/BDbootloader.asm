@@ -1,21 +1,12 @@
-[BITS 16]
-[ORG 0x7C00]
-
+[ORG 0x7e00]
 start:
-    ; --- Basic Setup ---
-    cli             ; Disable interrupts
-    xor ax, ax      ; Zero out AX register
-    mov ds, ax      ; Set data segment to 0
-    mov es, ax      ; Set extra segment to 0
-    mov ss, ax      ; Set stack segment to 0
-    mov sp, 0x7C00  ; Set stack pointer below bootloader
 
     ; --- Load Kernel from Disk ---
     ; Uses BIOS interrupt 0x13 to read from the disk
     mov ah, 0x02      ; Function 02h: Read Sectors
     mov al, 128       ; Number of sectors to read (Kernel)
     mov ch, 0         ; Cylinder number
-    mov cl, 2         ; Starting sector number (1 is bootloader)
+    mov cl, 3         ; Starting sector number (1 is bios, 2 is this)
     mov dh, 0         ; Head number
     mov dl, 0x80      ; Drive number
     mov bx, 0x8000    ; Destination buffer
@@ -101,5 +92,4 @@ CODE_SEG equ 0x08
 DATA_SEG equ 0x10
 
 ; --- Bootloader Signature ---
-times 510 - ($ - $$) db 0 ; Pad the bootloader to 510 bytes
-dw 0xAA55                 ; Boot signature
+; Removed, now setup in bios.asm

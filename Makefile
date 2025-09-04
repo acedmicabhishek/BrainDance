@@ -2,8 +2,14 @@ CFLAGS = -m32 -ffreestanding -I.
 all: bdos.img
 
 # Compile bootloader
+bios.bin: boot/bios.asm
+	nasm -f bin boot/bios.asm -o bios.bin
+
 BDbootloader.bin: boot/BDbootloader.asm
 	nasm -f bin boot/BDbootloader.asm -o BDbootloader.bin
+
+bootloader.bin: bios.bin BDbootloader.bin
+	cat bios.bin BDbootloader.bin > bootloader.bin
 
 # Compile libc
 libc/memcore.o: libc/memcore.c include/memcore.h
@@ -94,10 +100,10 @@ BDkernel.bin: kernel/BDkernel.o libc/memcore.o memory/pmm.o memory/paging.o memo
 	objcopy -O binary BDkernel.elf BDkernel.bin
 
 # Create bootable image
-bdos.img: BDbootloader.bin BDkernel.bin
+bdos.img: bootloader.bin BDkernel.bin
 	dd if=/dev/zero of=bdos.img bs=512 count=130
-	dd if=BDbootloader.bin of=bdos.img conv=notrunc
-	dd if=BDkernel.bin of=bdos.img seek=1 conv=notrunc
+	dd if=bootloader.bin of=bdos.img conv=notrunc
+	dd if=BDkernel.bin of=bdos.img seek=2 conv=notrunc
 
 # Run with QEMU
 run: bdos.img
