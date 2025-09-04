@@ -4,24 +4,22 @@ This document provides a detailed explanation of the BrainDance operating system
 
 ## 1. Boot Process
 
-The boot process is now a two-stage process, starting with an interactive BIOS shell.
+The boot process is a two-stage process initiated by a custom BIOS bootloader.
 
-### Stage 1: BIOS Shell (`boot/bios.asm`)
-The boot process begins with the BIOS loading and executing our first-stage bootloader, `boot/bios.asm`. This stage operates in **16-bit real mode** and presents the user with a simple, interactive command shell.
+### Stage 1: BIOS Loader (`boot/bios.asm`)
+The process begins with the BIOS loading and executing our first-stage bootloader from the Master Boot Record (MBR). This stage operates in **16-bit real mode**.
 
-#### Key Responsibilities:
-- **Initial Setup:** Sets up segment registers and initializes the VGA text mode.
-- **Interactive Shell:** Provides a command prompt where the user can issue commands.
-  - `help`: Lists available commands.
-  - `info`: Displays basic BIOS and system information.
-  - `cls`: Clears the screen.
-  - `start`: Proceeds to the second stage of the boot process.
-- **Loading Stage 2:** When the `start` command is executed, this bootloader reads the second sector of the disk into memory at `0x7e00` and jumps to it.
+#### INFO:
+- **Silent Countdown:** It initiates a silent 3-second countdown. If the user presses `2` during this time, it enters a simplified BIOS shell. Otherwise, it proceeds to boot the OS automatically.
+- **BIOS Shell:** If entered, this shell displays VGA info and accepts two commands:
+  - `start`: Loads and jumps to the second-stage bootloader.
+  - `res`:  Change Resolution and graphics mode (VGA/VESA).
+- **Loading Stage 2:** It reads the second disk sector into memory at `0x7e00` and transfers execution to it.
 
 ### Stage 2: Kernel Loader (`boot/BDbootloader.asm`)
 The second-stage bootloader is responsible for preparing the system for the C kernel and loading it into memory.
 
-#### Key Responsibilities:
+#### INFO BOOT:
 - **E820 Memory Map:** Reads the system's memory map using the BIOS `0xE820` interrupt and stores it at address `0x1000`.
 - **Kernel Loading:** Uses BIOS interrupt `0x13` to read 128 sectors (64KB) of the kernel from the disk (starting at sector 3) into memory at address `0x8000`.
 - **Enable A20 Line:** Activates the A20 gate to allow access to memory above 1MB.
