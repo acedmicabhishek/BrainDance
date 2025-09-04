@@ -2,7 +2,8 @@
 ![BrainDance](readme/braindance.gif)
 An OS from Scratch aiming for cyberNet.
 
-BrainDance is an educational operating system built from scratch. This project documents the journey of creating a simple OS, covering its architecture, components, and functionality from the bootloader to a basic shell.
+BrainDance is an operating system built from scratch. My plans have changed and now its not just an educational project, im going all in for development.
+I suck at asm but that aint stopping me tho.
 
 ## Features
 
@@ -106,7 +107,7 @@ For a complete and detailed explanation of the OS architecture, components, and 
 - Parse responses
 - Support A/AAAA record resolution
 
-### 12. Apps for Johnny Silverhand
+### 12. Apps
 - `curl`-like app for HTTP
 - Port scanner
 - Reverse shell client/server
