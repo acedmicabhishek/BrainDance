@@ -22,3 +22,4 @@ exec/*.o
 
 # Other temporary files
 bdos.tmp
+BDx64/
