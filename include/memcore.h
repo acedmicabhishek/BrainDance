@@ -1,7 +1,9 @@
 #ifndef MEMCORE_H
 #define MEMCORE_H
 
+#ifndef NULL
 #define NULL ((void*)0)
+#endif
 
 #include "include/types.h"
 
