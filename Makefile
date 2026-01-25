@@ -109,6 +109,10 @@ bdos.img: bootloader.bin BDkernel.bin
 run: bdos.img
 	qemu-system-i386 -drive format=raw,file=bdos.img
 
+# alt run
+runvnc: bdos.img
+	qemu-system-i386 -drive format=raw,file=bdos.img -vnc :0 & sleep 1 && vncviewer :0
+
 # Clean build files
 clean:
 	rm -f *.bin *.o *.elf bdos.img boot/*.bin kernel/*.o kernel/*.elf libc/*.o arch/i386/*.o drivers/*.o drivers/ata/*.o fs/*.o app/utils/*.o exec/*.o network/*.o
