@@ -1,185 +1,194 @@
 #include "include/cable.h"
 #include "include/bdfs.h"
-#include "include/memcore.h"
 #include "include/colors.h"
-#include "include/types.h"
-#include "include/keyboard.h"
 #include "include/exec.h"
+#include "include/keyboard.h"
+#include "include/memcore.h"
+#include "include/types.h"
 
 static editor_state_t editor;
 
-void syscall_write(const char* path, const uint8_t* buffer, uint32_t len) {
-    uint8_t bytecode[1024];
-    int ip = 0;
-    bytecode[ip++] = OPCODE_SYSCALL_WRITE;
-    strcpy((char*)&bytecode[ip], path);
-    ip += strlen(path) + 1;
-    *(uint32_t*)&bytecode[ip] = len;
-    ip += sizeof(uint32_t);
-    memcpy(&bytecode[ip], buffer, len);
-    ip += len;
-    bytecode[ip++] = OPCODE_EXIT;
-    interpret_bdx(bytecode);
+void syscall_write(const char *path, const uint8_t *buffer, uint32_t len) {
+  uint8_t bytecode[1024];
+  int ip = 0;
+  bytecode[ip++] = OPCODE_SYSCALL_WRITE;
+  strcpy((char *)&bytecode[ip], path);
+  ip += strlen(path) + 1;
+  *(uint32_t *)&bytecode[ip] = len;
+  ip += sizeof(uint32_t);
+  memcpy(&bytecode[ip], buffer, len);
+  ip += len;
+  bytecode[ip++] = OPCODE_EXIT;
+  interpret_bdx(bytecode);
 }
 
-void editor_init(const char* filename) {
-    editor.cx = 0;
-    editor.cy = 0;
-    editor.dirty = 0;
-    strncpy(editor.filename, filename, sizeof(editor.filename) - 1);
-    memset(editor.buffer, 0, sizeof(editor.buffer));
+void editor_init(const char *filename) {
+  editor.cx = 0;
+  editor.cy = 0;
+  editor.dirty = 0;
+  strncpy(editor.filename, filename, sizeof(editor.filename) - 1);
+  memset(editor.buffer, 0, sizeof(editor.buffer));
 
-    // Load file content if it exists
-    uint32_t bytes_read;
-    uint8_t file_content[EDITOR_ROWS * EDITOR_COLS];
-    if (bdfs_read_file(filename, file_content, &bytes_read) == 0) {
-        int row = 0;
-        int col = 0;
-        for (uint32_t i = 0; i < bytes_read && row < EDITOR_ROWS; i++) {
-            if (file_content[i] == '\n') {
-                row++;
-                col = 0;
-            } else if (col < EDITOR_COLS - 1) {
-                editor.buffer[row][col++] = file_content[i];
-            }
-        }
-        editor.cx = col;
-        editor.cy = row;
+  uint32_t bytes_read;
+  uint8_t file_content[EDITOR_ROWS * EDITOR_COLS];
+  if (bdfs_read_file(filename, file_content, &bytes_read) == 0) {
+    int row = 0;
+    int col = 0;
+    for (uint32_t i = 0; i < bytes_read && row < EDITOR_ROWS; i++) {
+      if (file_content[i] == '\n') {
+        row++;
+        col = 0;
+      } else if (col < EDITOR_COLS - 1) {
+        editor.buffer[row][col++] = file_content[i];
+      }
     }
+    editor.cx = col;
+    editor.cy = row;
+  }
 }
 
 void editor_draw_status_bar() {
-    char status[EDITOR_COLS];
-    char dirty_indicator = editor.dirty ? '*' : ' ';
-    snprintf(status, sizeof(status), "-- CABLE -- [%s]%c  Ctrl+S=Save | Ctrl+Q=Quit", editor.filename, dirty_indicator);
-    
-    for (int i = 0; i < EDITOR_COLS; i++) {
-        if (i < strlen(status)) {
-            print_char_at(status[i], STATUS_BAR_COLOR, i, EDITOR_ROWS - 1);
-        } else {
-            print_char_at(' ', STATUS_BAR_COLOR, i, EDITOR_ROWS - 1);
-        }
+  char status[EDITOR_COLS];
+  char dirty_indicator = editor.dirty ? '*' : ' ';
+  snprintf(status, sizeof(status),
+           "-- CABLE -- [%s]%c  Ctrl+S=Save | Ctrl+Q=Quit", editor.filename,
+           dirty_indicator);
+
+  for (int i = 0; i < EDITOR_COLS; i++) {
+    if (i < strlen(status)) {
+      print_char_at(status[i], STATUS_BAR_COLOR, i, EDITOR_ROWS - 1);
+    } else {
+      print_char_at(' ', STATUS_BAR_COLOR, i, EDITOR_ROWS - 1);
     }
+  }
 }
 
 void editor_draw() {
-    clear_screen(COLOR_SYSTEM);
-    for (int y = 0; y < EDITOR_ROWS - 1; y++) {
-        for (int x = 0; x < EDITOR_COLS; x++) {
-            print_char_at(editor.buffer[y][x], COLOR_INPUT, x, y);
-        }
+  clear_screen(COLOR_SYSTEM);
+  for (int y = 0; y < EDITOR_ROWS - 1; y++) {
+    for (int x = 0; x < EDITOR_COLS; x++) {
+      print_char_at(editor.buffer[y][x], COLOR_INPUT, x, y);
     }
-    editor_draw_status_bar();
-    set_cursor(editor.cx, editor.cy);
+  }
+  editor_draw_status_bar();
+  set_cursor(editor.cx, editor.cy);
 }
 
 void editor_insert_char(char c) {
-    if (editor.cx < EDITOR_COLS - 1) {
-        memmove(&editor.buffer[editor.cy][editor.cx + 1], &editor.buffer[editor.cy][editor.cx], strlen(editor.buffer[editor.cy]) - editor.cx);
-        editor.buffer[editor.cy][editor.cx] = c;
-        editor.cx++;
-        editor.dirty = 1;
-    }
+  if (editor.cx < EDITOR_COLS - 1) {
+    memmove(&editor.buffer[editor.cy][editor.cx + 1],
+            &editor.buffer[editor.cy][editor.cx],
+            strlen(editor.buffer[editor.cy]) - editor.cx);
+    editor.buffer[editor.cy][editor.cx] = c;
+    editor.cx++;
+    editor.dirty = 1;
+  }
 }
 
 void editor_delete_char() {
-    if (editor.cx > 0) {
-        editor.cx--;
-        memmove(&editor.buffer[editor.cy][editor.cx], &editor.buffer[editor.cy][editor.cx + 1], strlen(editor.buffer[editor.cy]) - editor.cx);
-        editor.dirty = 1;
-    } else if (editor.cy > 0) {
-        int prev_line_len = strlen(editor.buffer[editor.cy - 1]);
-        if (prev_line_len + strlen(editor.buffer[editor.cy]) < EDITOR_COLS - 1) {
-            strcat(editor.buffer[editor.cy - 1], editor.buffer[editor.cy]);
-            memmove(&editor.buffer[editor.cy], &editor.buffer[editor.cy + 1], (EDITOR_ROWS - editor.cy - 1) * EDITOR_COLS);
-            editor.cy--;
-            editor.cx = prev_line_len;
-            editor.dirty = 1;
-        }
+  if (editor.cx > 0) {
+    editor.cx--;
+    memmove(&editor.buffer[editor.cy][editor.cx],
+            &editor.buffer[editor.cy][editor.cx + 1],
+            strlen(editor.buffer[editor.cy]) - editor.cx);
+    editor.dirty = 1;
+  } else if (editor.cy > 0) {
+    int prev_line_len = strlen(editor.buffer[editor.cy - 1]);
+    if (prev_line_len + strlen(editor.buffer[editor.cy]) < EDITOR_COLS - 1) {
+      strcat(editor.buffer[editor.cy - 1], editor.buffer[editor.cy]);
+      memmove(&editor.buffer[editor.cy], &editor.buffer[editor.cy + 1],
+              (EDITOR_ROWS - editor.cy - 1) * EDITOR_COLS);
+      editor.cy--;
+      editor.cx = prev_line_len;
+      editor.dirty = 1;
     }
+  }
 }
 
 void editor_save_file() {
-    uint32_t len = 0;
-    uint8_t save_buffer[EDITOR_ROWS * EDITOR_COLS];
-    for (int y = 0; y < EDITOR_ROWS; y++) {
-        int row_len = strlen(editor.buffer[y]);
-        if (row_len > 0) {
-            memcpy(save_buffer + len, editor.buffer[y], row_len);
-            len += row_len;
-            if (y < EDITOR_ROWS - 1) {
-                save_buffer[len] = '\n';
-                len++;
-            }
-        }
+  uint32_t len = 0;
+  uint8_t save_buffer[EDITOR_ROWS * EDITOR_COLS];
+  for (int y = 0; y < EDITOR_ROWS; y++) {
+    int row_len = strlen(editor.buffer[y]);
+    if (row_len > 0) {
+      memcpy(save_buffer + len, editor.buffer[y], row_len);
+      len += row_len;
+      if (y < EDITOR_ROWS - 1) {
+        save_buffer[len] = '\n';
+        len++;
+      }
     }
+  }
 
-    syscall_write(editor.filename, save_buffer, len);
-    editor.dirty = 0;
+  syscall_write(editor.filename, save_buffer, len);
+  editor.dirty = 0;
 }
 
 int editor_process_keypress() {
-    unsigned char scancode = keyboard_get_scancode();
+  unsigned char scancode = keyboard_get_scancode();
 
-    if (scancode) {
-        // Ctrl+S to save
-        if (scancode == 0x1F && ctrl_pressed) {
-            editor_save_file();
-            return 1; // Continue running
-        }
-        
-        // Ctrl+Q to quit
-        if (scancode == 0x10 && ctrl_pressed) {
-            // For now, we just exit. A real implementation would check for unsaved changes.
-            return 0; // Signal to quit
-        }
-
-
-        // Arrow keys for navigation
-        if (scancode == 0x48) { // Up arrow
-            if (editor.cy > 0) editor.cy--;
-            return 1;
-        }
-        if (scancode == 0x50) { // Down arrow
-            if (editor.cy < EDITOR_ROWS - 2) editor.cy++;
-            return 1;
-        }
-        if (scancode == 0x4B) { // Left arrow
-            if (editor.cx > 0) editor.cx--;
-            return 1;
-        }
-        if (scancode == 0x4D) { // Right arrow
-            if (editor.cx < strlen(editor.buffer[editor.cy])) editor.cx++;
-            return 1;
-        }
-
-        char c = kbd_us[scancode];
-        if (c) {
-            switch (c) {
-                case '\n':
-                    editor.cy++;
-                    editor.cx = 0;
-                    break;
-                case '\b':
-                    editor_delete_char();
-                    break;
-                default:
-                    if (c >= 32 && c <= 126) {
-                        editor_insert_char(c);
-                    }
-                    break;
-            }
-        }
+  if (scancode) {
+    // Ctrl+S to save
+    if (scancode == 0x1F && ctrl_pressed) {
+      editor_save_file();
+      return 1; // Continue running
     }
-    return 1; // Continue running
+
+    // Ctrl+Q to quit
+    if (scancode == 0x10 && ctrl_pressed) {
+
+      return 0;
+    }
+
+    // Arrow keys for navigation
+    if (scancode == 0x48) { // Up arrow
+      if (editor.cy > 0)
+        editor.cy--;
+      return 1;
+    }
+    if (scancode == 0x50) { // Down arrow
+      if (editor.cy < EDITOR_ROWS - 2)
+        editor.cy++;
+      return 1;
+    }
+    if (scancode == 0x4B) { // Left arrow
+      if (editor.cx > 0)
+        editor.cx--;
+      return 1;
+    }
+    if (scancode == 0x4D) { // Right arrow
+      if (editor.cx < strlen(editor.buffer[editor.cy]))
+        editor.cx++;
+      return 1;
+    }
+
+    char c = kbd_us[scancode];
+    if (c) {
+      switch (c) {
+      case '\n':
+        editor.cy++;
+        editor.cx = 0;
+        break;
+      case '\b':
+        editor_delete_char();
+        break;
+      default:
+        if (c >= 32 && c <= 126) {
+          editor_insert_char(c);
+        }
+        break;
+      }
+    }
+  }
+  return 1;
 }
 
-void cable_main(const char* filename) {
-    editor_init(filename);
-    
-    int running = 1;
-    while (running) {
-        editor_draw();
-        running = editor_process_keypress();
-    }
+void cable_main(const char *filename) {
+  editor_init(filename);
+
+  int running = 1;
+  while (running) {
+    editor_draw();
+    running = editor_process_keypress();
+  }
 }
